@@ -2,7 +2,7 @@ import api from "./axios";
 import type { Task, CreateTask, UpdateTask } from "../Types/task";
 
 export const getTasksByProjectId = async (projectId: string): Promise<Task[]> => {
-    const response = await api.get(`/projects/getTasksByProjectId/${projectId}/tasks`);
+    const response = await api.get(`/tasks/getTasksByProjectId/${projectId}`);
     return response.data;
 }
 

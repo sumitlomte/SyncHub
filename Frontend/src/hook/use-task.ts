@@ -2,12 +2,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getTaskById, getTasksByProjectId, createTask, updateTask, deleteTask } from "../api/task-api";
 import type { Task, CreateTask, UpdateTask } from "../Types/task";
 
-export default function useTasks() {
+export default function useTasks(projectId: string) {
     const queryClient = useQueryClient()
+
     const GetTasksByProjectId = useQuery<Task[]>({
-        queryKey: ["tasksByProjectId"],
-        queryFn: ({ queryKey }) => getTasksByProjectId(queryKey[1] as string),
-        enabled: false, // Disable automatic fetching on component mount
+        queryKey: ["tasksByProjectId", projectId],
+        queryFn: () => getTasksByProjectId(projectId),
+        enabled: !!projectId,
     });
 
     const GetTaskById = useQuery<Task>({

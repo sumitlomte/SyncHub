@@ -32,13 +32,13 @@ export default function AssignedProjects() {
           ) : (
 
             /* Project Grid */
-        <div className="w-full p-6 h-[calc(100vh-80px)] flex flex-col">
+        <div className="w-full">
 
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="w-full h-[80vh] flex flex-col gap-4 overflow-y-auto">
                 {AssignedProjects.map((project) => (
                     <div
                     key={project.id}
-                    className="bg-white border rounded-xl p-5 shadow-sm hover:shadow-md transition"
+                    className="bg-white border rounded-xl p-5 shadow-sm hover:shadow-md transition w-full"
                     >
                     <h3 className="text-lg font-semibold">{project.title}</h3>
 
@@ -46,7 +46,7 @@ export default function AssignedProjects() {
                         {project.description}
                     </p>
 
-                    <div className="grid grid-cols-4 gap-3 text-center">
+                    <div className="grid grid-cols-4 gap-3 w-full text-center">
 
                         <div className="bg-gray-100 rounded-lg p-2">
                         <p className="text-xs text-gray-500">Total</p>
@@ -65,7 +65,7 @@ export default function AssignedProjects() {
 
                         <div className="bg-green-100 rounded-lg p-2">
                         <p className="text-xs text-green-700">Done</p>
-                        <p className="font-semibold">{project.doneTasks}</p>
+                        <p className="font-semibold">{project.completedTasks}</p>
                         </div>
 
                     </div>

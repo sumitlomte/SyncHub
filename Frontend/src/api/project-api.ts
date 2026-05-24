@@ -2,7 +2,7 @@ import api from "./axios";
 import type { UpdateProject, CreateProject } from "../Types/project";
 
 export const fetchAllProjectsByUserID = async (userId: string) => {
-    const response = await api.get(`/projects/getAllProjectsByUserID/${userId}`);
+    const response = await api.get(`/projects/getAllProjectByUserID/${userId}`);
     return response.data;
 };
 
@@ -32,5 +32,10 @@ export const updateProject = async (projectData: UpdateProject) => {
 
 export const deleteProject = async (id: string) => {
     const response = await api.delete(`/projects/${id}`);
+    return response.data;
+}
+
+export const getAllProjectsList = async (userId: string) => {
+    const response = await api.get(`/projects/getAllProjectsList/${userId}`);
     return response.data;
 }

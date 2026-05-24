@@ -61,15 +61,16 @@ export const updateTask = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { title, description, assignee, assignedTo, status, dueDate } = req.body;
-        const user = await prisma.user.findUnique({
-            where: { id: String(assignee) },
+        const assignedToUser = await prisma.user.findUnique({
+            where: { id: String(assignedTo) },
         }) || { name: "Unassigned" };
         const task = await prisma.task.update({
             where: { id: String(id) },
             data: {
                 title,
                 description,
-                assignedTo,
+                assignee,
+                assignedTo: assignedToUser.name,
                 status,
                 dueDate,
             },

@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import userRouter from "./routes/userRouter";
 import projectRouter from "./routes/projectRouter";
 import taskRouter from "./routes/taskRouter";
+import teamRouter from "./routes/teamRouter";
 import { prisma } from "./lib/prisma";
 import cors from 'cors';
 
@@ -16,6 +17,7 @@ app.use(cors());
 // Basic request logging (includes which API call was made + response status)
 app.use((req: Request, res: Response, next) => {
   const apiCall = `${req.method} ${req.originalUrl}`;
+  console.log(`Incoming request: ${apiCall}`);
   const start = Date.now();
 
   res.on('finish', () => {
@@ -51,11 +53,12 @@ app.get('/api/health', async (req: Request, res: Response) => {
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello World!');
-});
+});  
 
 app.use("/api/users", userRouter);
 app.use("/api/projects", projectRouter);
 app.use("/api/tasks", taskRouter);
+app.use("/api/teams", teamRouter);
 
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);

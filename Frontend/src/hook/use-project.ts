@@ -1,19 +1,23 @@
 import { useQuery, useMutation, useQueryClient  } from "@tanstack/react-query";
-import { fetchAllProjectsByUserID, fetchProject, createProject, updateProject, deleteProject } from "../api/project-api";
+import { fetchAllProjectsByUserID, fetchProject, createProject, updateProject, deleteProject, getAllProjectsList } from "../api/project-api";
 import type { Project, UpdateProject, CreateProject } from "../Types/project";
+import { userStore } from "../store/user-store";
 
-export default function useProjects() {
+export default function useProjects(enableAllProjectsList: boolean = false, enableAllProjectsByUserID: boolean = true, projectId?: string) {
+    const { user } = userStore.get()
     const queryClient = useQueryClient()
+
     const GetAllProjectsByUserID = useQuery<Project[]>({
-        queryKey: ["projects"],
-        queryFn: ({ queryKey }) => fetchAllProjectsByUserID(queryKey[1] as string),
-        enabled: false, // Disable automatic fetching on component mount
+        queryKey: ["projects", user?.id],
+        queryFn: () => fetchAllProjectsByUserID(user?.id as string),
+        staleTime: 0, 
+        enabled: enableAllProjectsByUserID, 
     });
 
     const GetProject = useQuery<Project>({
-        queryKey: ["project"],
+        queryKey: ["project", projectId],
         queryFn: ({ queryKey }) => fetchProject(queryKey[1] as string),
-        enabled: false, // Disable automatic fetching on component mount
+        enabled: !!projectId, // Enable only if projectId is provided
     });
 
     const CreateProject = useMutation<CreateProject, Error, CreateProject>({
@@ -37,5 +41,12 @@ export default function useProjects() {
        }
     });
 
-    return { GetAllProjectsByUserID, GetProject, CreateProject, UpdateProject, DeleteProject }
+    const GetAllProjectsList = useQuery<(Project & { userId: never; description: never })[]>({
+        queryKey: ["projectsList", user?.id],
+        queryFn: () => getAllProjectsList(user?.id as string),
+        staleTime: 0,
+        enabled: enableAllProjectsList, // Enable based on parameter
+    });
+
+    return { GetAllProjectsByUserID, GetProject, CreateProject, UpdateProject, DeleteProject, GetAllProjectsList }
 }

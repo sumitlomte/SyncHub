@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient  } from "@tanstack/react-query";
 import { getUsers, loginUser, registerUser, updateUser, deleteUser, logoutUser, getAssignedProjects } from "../api/user-api";
-import type { User, RegisterUser, UpdateUser, LoginUser, AssignedProject } from "../Types/user";
+import type { User, RegisterUser, UpdateUser, LoginUser, AssignedProjects } from "../Types/user";
 import { router } from "./../router"
+import { saveUserToLocalStorage, clearUserFromLocalStorage } from "../store/user-store";
 
 export default function useUsers() {
   const queryClient = useQueryClient()
@@ -11,16 +12,15 @@ export default function useUsers() {
     queryFn: getUsers,
   });
 
-  const LoginUser = useMutation<unknown, unknown, LoginUser>({
+  const LoginUser = useMutation<{ user: { name: string; id: number; role: string } }, unknown, LoginUser>({
     mutationFn: loginUser,
     onError: () => {       
         alert("Login failed. Please check your credentials and try again.");
     },
-    onSuccess: () => {
+    onSuccess:(data: { user: { name: string; id: number; role: string } }) => {
         alert("Login successful! Welcome back.");
-        // Optionally, you can also store the user data in local storage or context here
-        // localStorage.setItem("user", JSON.stringify(data));
-        router.navigate({ to: "/projects" }); // Redirect to projects after successful login
+        saveUserToLocalStorage(data.user as { name: string; id: number, role: string });
+        router.navigate({ to: "/projects" }); 
     }
   });       
 
@@ -47,10 +47,13 @@ export default function useUsers() {
 
   const LogoutUser = useMutation({
     mutationFn: logoutUser,
+    onSuccess: () => {
+      clearUserFromLocalStorage();
+    }
   });    
   
   function GetAssignedProjects(userId: string) {
-  return useQuery<AssignedProject[]>({
+  return useQuery<AssignedProjects[]>({
     queryKey: ["assignedProjects", userId],
     queryFn: () => getAssignedProjects(userId),
   });

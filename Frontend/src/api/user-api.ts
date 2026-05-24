@@ -44,7 +44,7 @@ export const deleteUser = async (id: string) => {
 }
 
 export const logoutUser = async () => {
-  const response = await api.post(`/logout`);
+  const response = await api.post(`/users/logout`);
   return response.data;   
 }
 

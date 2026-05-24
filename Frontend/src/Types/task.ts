@@ -6,6 +6,8 @@ export interface Task {
     createdAt: Date;
     assignee: string;
     assignedTo: string;
+    assignedUserId?: string;
+    assigneeId?: string;
     updatedAt: Date;
     status: "TODO"| "IN_PROGRESS" | "COMPLETED";
     dueDate: Date; 

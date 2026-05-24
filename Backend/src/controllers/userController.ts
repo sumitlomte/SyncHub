@@ -88,10 +88,11 @@ export const loginUser = async (req: Request, res: Response) => {
         return res.status(401).json({ error: "Invalid email or password" });
     }
     const token = generateToken(user);
-    res.cookie("token", token).json({ message: "Login successful" });
+    res.cookie("token", token).json({ message: "Login successful", user: { id: user.id, name: user.name, role: user.role } });
 };
 
 export const logoutUser = (req: Request, res: Response) => {
+    console.log("Logging out user");
     res.clearCookie("token").json({ message: "Logged out successfully" });
 };
 
