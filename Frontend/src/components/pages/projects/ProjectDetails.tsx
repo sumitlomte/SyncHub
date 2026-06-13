@@ -119,25 +119,26 @@ export default function ProjectDetails() {
     <div className="w-full h-screen flex flex-col bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
             <Tooltip title="Back to Projects">
               <Button
                 variant="outlined"
                 size="small"
                 onClick={() => navigate({ to: "/projects" })}
+                className="!min-w-0 flex-shrink-0"
               >
                 <ArrowLeft size={20} />
               </Button>
             </Tooltip>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">{project.title}</h1>
-              <div className="flex items-center gap-3 mt-1">
-                <p className="text-sm text-gray-500">Project ID: {project.id}</p>
-                <span className="text-gray-300">|</span>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 truncate">{project.title}</h1>
+              <div className="flex items-center gap-2 sm:gap-3 mt-1">
+                <p className="hidden sm:block text-sm text-gray-500 truncate">Project ID: {project.id}</p>
+                <span className="hidden sm:inline text-gray-300">|</span>
                 <button
                   onClick={handleTeamClick}
-                  className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium transition-colors"
+                  className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium transition-colors flex-shrink-0"
                 >
                   <Users size={16} />
                   {projectMemberIds.length} Members

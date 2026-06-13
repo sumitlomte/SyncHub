@@ -1,4 +1,6 @@
 import express from 'express';
+import { createServer } from 'http';
+import {Server} from 'socket.io';
 import type { Request, Response } from 'express';
 import userRouter from "./routes/userRouter";
 import projectRouter from "./routes/projectRouter";
@@ -6,8 +8,17 @@ import taskRouter from "./routes/taskRouter";
 import teamRouter from "./routes/teamRouter";
 import { prisma } from "./lib/prisma";
 import cors from 'cors';
+import { initSocket } from "./sockets";
 
 const app = express();
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+  },
+  transports: ['websocket', 'polling'],
+});
 const port = 3000;
 
 // Enable CORS for all routes
@@ -60,6 +71,10 @@ app.use("/api/projects", projectRouter);
 app.use("/api/tasks", taskRouter);
 app.use("/api/teams", teamRouter);
 
-app.listen(port, () => {
+// Initialize all Socket.IO event handlers
+initSocket(io);
+
+
+server.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });

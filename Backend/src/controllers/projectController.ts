@@ -104,7 +104,7 @@ export const getProjectsList = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'User ID is required' });
     }
     const projects = await prisma.project.findMany({
-      where: { userId: String(userId) },
+      where: { teamMembers: { some: { userId: String(userId) } } },
       select: {
         id: true,
         title: true,

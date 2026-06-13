@@ -5,6 +5,7 @@ import { userStore } from "../store/user-store";
 
 export default function useProjects(enableAllProjectsList: boolean = false, enableAllProjectsByUserID: boolean = true, projectId?: string) {
     const { user } = userStore.get()
+    console.log("useProjects called with user:", user, "enableAllProjectsList:", enableAllProjectsList, "enableAllProjectsByUserID:", enableAllProjectsByUserID, "projectId:", projectId);
     const queryClient = useQueryClient()
 
     const GetAllProjectsByUserID = useQuery<Project[]>({

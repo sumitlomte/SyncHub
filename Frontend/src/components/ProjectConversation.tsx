@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from "react"
 import { Button, Avatar, CircularProgress, IconButton, Tooltip } from "@mui/material"
 import { Send, Smile, Paperclip } from "lucide-react"
 import { userStore } from "../store/user-store"
+import socket from "../Socket"
+import { useParams } from "@tanstack/react-router"
 
 interface Message {
   id: string
@@ -10,7 +12,6 @@ interface Message {
   userAvatar?: string
   content: string
   timestamp: Date
-  isOwn?: boolean
 }
 
 export default function ProjectConversation() {
@@ -19,8 +20,31 @@ export default function ProjectConversation() {
   const [loading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { user } = userStore.get()
+  const { projectId } = useParams({ strict: false })
 
+  useEffect(() => {
+    socket.on("message-from-server", (message: Message) => {
+      setMessages((prevMessages) =>
+        prevMessages.some((m) => m.id === message.id)
+          ? prevMessages
+          : [...prevMessages, message]
+      )
+    })
 
+    return () => {
+      socket.off("message-from-server")
+
+    }
+  }, [])
+
+  // Join/leave the project room when the active project changes
+  useEffect(() => {
+    if (!projectId) return
+    socket.emit("join-project", projectId, user?.id)
+    return () => {
+      socket.emit("leave-project", projectId, user?.id)
+    }
+  }, [projectId, user?.id])
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -36,12 +60,11 @@ export default function ProjectConversation() {
       userName: user?.name || "You",
       content: inputValue,
       timestamp: new Date(),
-      isOwn: true,
     }
 
-    setMessages([...messages, newMessage])
+    setMessages((prev) => [...prev, newMessage])
     setInputValue("")
-    // In real app, send to API here
+    socket.emit("project-message", { ...newMessage, projectId })
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -71,17 +94,18 @@ export default function ProjectConversation() {
           </div>
         ) : (
           messages.map((message, index) => {
+            const isOwn = message.userId === user?.id
             const isConsecutive = 
               index > 0 && messages[index - 1].userId === message.userId
 
             return (
               <div
                 key={message.id}
-                className={`flex gap-3 ${message.isOwn ? "justify-end" : "justify-start"} ${
+                className={`flex gap-3 ${isOwn ? "justify-end" : "justify-start"} ${
                   isConsecutive ? "mt-1.5" : "mt-6"
                 }`}
               >
-                {!message.isOwn && !isConsecutive && (
+                {!isOwn && !isConsecutive && (
                   <Avatar
                     alt={message.userName}
                     src={message.userAvatar}
@@ -89,15 +113,15 @@ export default function ProjectConversation() {
                     sx={{ width: 36, height: 36 }}
                   />
                 )}
-                {!message.isOwn && isConsecutive && (
+                {!isOwn && isConsecutive && (
                   <div className="w-[36px] flex-shrink-0" />
                 )}
 
-                <div className={`flex flex-col max-w-[75%] ${message.isOwn ? "items-end" : "items-start"}`}>
+                <div className={`flex flex-col max-w-[75%] ${isOwn ? "items-end" : "items-start"}`}>
                   {!isConsecutive && (
-                    <div className={`flex items-baseline gap-2 mb-1.5 ${message.isOwn ? "justify-end" : "justify-start"}`}>
+                    <div className={`flex items-baseline gap-2 mb-1.5 ${isOwn ? "justify-end" : "justify-start"}`}>
                       <p className="text-sm font-semibold text-gray-700">
-                        {message.isOwn ? "You" : message.userName}
+                        {isOwn ? "You" : message.userName}
                       </p>
                       <p className="text-xs text-gray-500">
                         {new Date(message.timestamp).toLocaleTimeString([], {
@@ -109,7 +133,7 @@ export default function ProjectConversation() {
                   )}
                   <div
                     className={`px-4 py-2.5 rounded-2xl break-words whitespace-pre-wrap text-sm shadow-sm leading-relaxed ${
-                      message.isOwn
+                      isOwn
                         ? "bg-blue-600 text-white rounded-tr-sm"
                         : "bg-white text-gray-800 border border-gray-100 rounded-tl-sm"
                     }`}
@@ -118,7 +142,7 @@ export default function ProjectConversation() {
                   </div>
                 </div>
 
-                {message.isOwn && !isConsecutive && (
+                {isOwn && !isConsecutive && (
                   <Avatar
                     alt={message.userName}
                     src={message.userAvatar}
@@ -126,7 +150,7 @@ export default function ProjectConversation() {
                     sx={{ width: 36, height: 36 }}
                   />
                 )}
-                {message.isOwn && isConsecutive && (
+                {isOwn && isConsecutive && (
                   <div className="w-[36px] flex-shrink-0" />
                 )}
               </div>

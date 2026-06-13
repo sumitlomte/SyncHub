@@ -1,12 +1,14 @@
 import { Modal, Box, TextField, Button } from "@mui/material"
 import { startTransition, useEffect, useState } from "react"
 
-type Project = {
+export type ProjectFormData = {
   id?: string
   title: string
   description: string
   userId?: string
 }
+
+type Project = ProjectFormData
 
 type Props = {
   open: boolean
