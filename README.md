@@ -20,7 +20,6 @@ SyncHub is a full-stack web application designed for managing projects, tasks, a
 - [Deployment](#-deployment)
 - [Database Schema](#-database-schema)
 - [Troubleshooting](#-troubleshooting)
-- [Contributing](#-contributing)
 - [Support & Resources](#-support--resources)
 - [License](#-license)
 
@@ -879,65 +878,6 @@ VITE_API_URL="https://api.yourdomain.com"
 VITE_SOCKET_URL="https://socket.yourdomain.com"
 VITE_ENV="production"
 ```
-
-## 🤝 Contributing
-
-We welcome contributions! Please follow these steps:
-
-### Development Setup
-```bash
-# 1. Fork the repository
-# 2. Clone your fork
-git clone https://github.com/your-username/SyncHub.git
-cd SyncHub
-
-# 3. Create feature branch
-git checkout -b feature/your-feature-name
-
-# 4. Make changes and commit
-git commit -m "feat: describe your changes"
-
-# 5. Push to your fork
-git push origin feature/your-feature-name
-
-# 6. Create Pull Request on GitHub
-```
-
-### Commit Message Convention
-- `feat:` - New feature
-- `fix:` - Bug fix
-- `docs:` - Documentation
-- `style:` - Code style
-- `refactor:` - Refactoring
-- `test:` - Tests
-- `chore:` - Maintenance
-
-### Code Style
-- Use TypeScript with strict mode enabled
-- Follow ESLint configuration
-- Format code with Prettier
-- Add type annotations to functions
-- Write meaningful variable names
-
-### Testing
-- Write tests for new features
-- Ensure existing tests pass
-- Test both happy path and edge cases
-- Update tests when modifying functionality
-
-### Pull Request Guidelines
-1. Provide clear description of changes
-2. Reference related issues
-3. Include screenshots for UI changes
-4. Ensure CI/CD checks pass
-5. Request review from maintainers
-
-### Reporting Issues
-- Check if issue already exists
-- Provide detailed description
-- Include steps to reproduce
-- Share error messages and logs
-- Mention your environment (OS, Node version, etc.)
 
 ## 📝 Database Schema
 
