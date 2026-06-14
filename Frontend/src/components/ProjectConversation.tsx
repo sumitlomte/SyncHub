@@ -2,12 +2,13 @@ import { useState, useRef, useEffect } from "react"
 import { Button, Avatar, CircularProgress, IconButton, Tooltip } from "@mui/material"
 import { Send, Smile, Paperclip } from "lucide-react"
 import { userStore } from "../store/Auth-store"
-import socket from "../Socket"
+import getSocket from "../Socket"
 import { useParams } from "@tanstack/react-router"
 import { toastManager } from "../utils/toast"
 import { logger } from "../utils/logger"
 import { type Message, type ServerMessage, normalizeMessage } from "../utils/message"
 import useMessage from "../hook/use-message"
+import { SocketEvents } from "../constants/socket-events"
 
 interface TypingUser {
   userId: string
@@ -37,7 +38,8 @@ export default function ProjectConversation() {
   }, [projectId])
 
   useEffect(() => {
-    socket.on("message-from-server", (message: ServerMessage) => {
+    const socket = getSocket()
+    socket.on(SocketEvents.MESSAGE_FROM_SERVER, (message: ServerMessage) => {
       try {
         // Only add messages for the current project
         if (message.projectId !== currentProjectIdRef.current) return
@@ -73,13 +75,13 @@ export default function ProjectConversation() {
       }
     })
 
-    socket.on("message-error", (data: { error: string }) => {
+    socket.on(SocketEvents.MESSAGE_ERROR, (data: { error: string }) => {
       logger.warn("Message save failed", { error: data.error })
       toastManager.show("error", "Failed to send message. Please try again.")
       setSending(false)
     })
 
-    socket.on("user-typing", (data: { projectId: string; userId: string; userName: string }) => {
+    socket.on(SocketEvents.USER_TYPING, (data: { projectId: string; userId: string; userName: string }) => {
       try {
         setTypingUsers((prevTyping) => {
           const exists = prevTyping.some((u) => u.userId === data.userId)
@@ -92,7 +94,7 @@ export default function ProjectConversation() {
       }
     })
 
-    socket.on("user-stopped-typing", (data: { projectId: string; userId: string; userName: string }) => {
+    socket.on(SocketEvents.USER_STOPPED_TYPING, (data: { projectId: string; userId: string; userName: string }) => {
       try {
         setTypingUsers((prevTyping) => prevTyping.filter((u) => u.userId !== data.userId))
       } catch (error) {
@@ -100,12 +102,12 @@ export default function ProjectConversation() {
       }
     })
 
-    socket.on("connect_error", (error: { message: string }) => {
+    socket.on(SocketEvents.CONNECT_ERROR, (error: { message: string }) => {
       logger.error("Socket connection error", new Error(error.message))
       toastManager.show("error", "Connection failed. Trying to reconnect...")
     })
 
-    socket.on("disconnect", (reason: string) => {
+    socket.on(SocketEvents.DISCONNECT, (reason: string) => {
       if (reason !== "io client namespace disconnect") {
         logger.warn("Socket disconnected", { reason })
         toastManager.show("warning", "Connection lost. Reconnecting...")
@@ -113,12 +115,12 @@ export default function ProjectConversation() {
     })
 
     return () => {
-      socket.off("message-from-server")
-      socket.off("message-error")
-      socket.off("user-typing")
-      socket.off("user-stopped-typing")
-      socket.off("connect_error")
-      socket.off("disconnect")
+      socket.off(SocketEvents.MESSAGE_FROM_SERVER)
+      socket.off(SocketEvents.MESSAGE_ERROR)
+      socket.off(SocketEvents.USER_TYPING)
+      socket.off(SocketEvents.USER_STOPPED_TYPING)
+      socket.off(SocketEvents.CONNECT_ERROR)
+      socket.off(SocketEvents.DISCONNECT)
     }
   }, [])
 
@@ -126,12 +128,13 @@ export default function ProjectConversation() {
   useEffect(() => {
     if (!projectId) return
     
-    socket.emit("join-project", projectId, user?.id)
+    const socket = getSocket()
+    socket.emit(SocketEvents.JOIN_PROJECT, projectId, user?.id)
     
     return () => {
       // Clean up: reset messages when leaving the project
       setSocketMessages([])
-      socket.emit("leave-project", projectId, user?.id)
+      socket.emit(SocketEvents.LEAVE_PROJECT, projectId, user?.id)
     }
   }, [projectId, user?.id])
 
@@ -171,7 +174,10 @@ export default function ProjectConversation() {
       setInputValue("")
 
       // Emit to server
-      socket.emit("project-message", { ...newMessage, projectId }, (ackError?: string) => {
+      const socket = getSocket()
+      const messagePayload = { ...newMessage, projectId }
+      
+      socket.emit(SocketEvents.SEND_MESSAGE, messagePayload, (ackError?: string) => {
         setSending(false)
         if (ackError) {
           logger.error("Message acknowledgement error", new Error(ackError), { ackError })
@@ -182,7 +188,7 @@ export default function ProjectConversation() {
       })
 
       // Emit stop-typing when message is sent
-      socket.emit("stop-typing", { projectId, userId: user.id, userName: user.name })
+      socket.emit(SocketEvents.STOP_TYPING, { projectId, userId: user.id, userName: user.name })
     } catch (error) {
       setSending(false)
       logger.error("Error sending message", error as Error, {
@@ -209,7 +215,8 @@ export default function ProjectConversation() {
     }
 
     try {
-      socket.emit("typing", { userId: user.id, projectId, userName: user.name })
+      const socket = getSocket()
+      socket.emit(SocketEvents.TYPING, { userId: user.id, projectId, userName: user.name })
 
       typingThrottleRef.current = setTimeout(() => {
         typingThrottleRef.current = null

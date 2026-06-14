@@ -57,5 +57,5 @@ function getSocket(): SocketType {
   return socket;
 }
 
-// Export socket instance for use in components
-export default getSocket();
+// Export socket instance getter
+export default getSocket;
