@@ -1234,9 +1234,9 @@ npm run build
 ### Getting Help
 
 - **Documentation**: Read the sections above for detailed guides
-- **Issues**: Search [GitHub Issues](https://github.com/yourusername/SyncHub/issues) for similar problems
+- **Issues**: Search [GitHub Issues](https://github.com/sumitlomte/SyncHub/issues) for similar problems
 - **Discussions**: Join discussions for feature requests and ideas
-- **Email**: Contact maintainers at [your-email@example.com]
+- **Email**: Contact maintainers at [sumitlomte348@gmail.com]
 
 ### Useful Resources
 
