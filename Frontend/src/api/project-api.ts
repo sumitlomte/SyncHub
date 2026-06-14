@@ -1,5 +1,5 @@
 import api from "./axios";
-import type { UpdateProject, CreateProject } from "../Types/project";
+import type { UpdateProject, CreateProject } from "../types/project";
 
 export const fetchAllProjectsByUserID = async (userId: string) => {
     const response = await api.get(`/projects/getAllProjectByUserID/${userId}`);

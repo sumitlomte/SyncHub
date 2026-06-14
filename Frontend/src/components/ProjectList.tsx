@@ -1,11 +1,11 @@
 ﻿import { useState } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { Button, CircularProgress } from "@mui/material"
-import { Trash2, Edit, Plus, ChevronRight } from "lucide-react"
+import { Trash2, Edit, Plus } from "lucide-react"
 import useProjects from "../hook/use-project"
-import { userStore } from "../store/user-store"
+import { userStore } from "../store/Auth-store"
 import ProjectModal, { type ProjectFormData } from "./Modals/ProjectModal"
-import type { Project } from "../Types/project"
+import type { Project } from "../types/project"
 
 export default function ProjectList() {
   const navigate = useNavigate()
@@ -80,49 +80,50 @@ export default function ProjectList() {
                 className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-gray-200 rounded-lg p-4 sm:p-5 hover:shadow-lg hover:border-blue-300 transition-all duration-200 cursor-pointer group"
                 onClick={() => navigate({ to: `/projects/${project.id}` })}
               >
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 break-words group-hover:text-blue-600 transition-colors">
-                        {project.title}
-                      </h3>
-                      <ChevronRight size={20} className="text-gray-400 group-hover:text-blue-600 transition-colors flex-shrink-0" />
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0 pr-3">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors flex-1">
+                          {project.title}
+                        </h3>
+                      </div>
                     </div>
-                    <p className="text-sm text-gray-600 mt-2 whitespace-pre-line break-words line-clamp-2">
-                      {project.description}
-                    </p>
-                  </div>
-                  <div
-                    className="flex gap-2 sm:ml-4 flex-shrink-0 self-end sm:self-auto"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="primary"
-                      startIcon={<Edit size={16} />}
-                      onClick={() => handleEditProject(project)}
-                      disabled={UpdateProject.isPending}
+                    <div
+                      className="flex gap-2 flex-shrink-0"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      Edit
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="error"
-                      startIcon={
-                        DeleteProject.isPending ? (
-                          <CircularProgress size={16} />
-                        ) : (
-                          <Trash2 size={16} />
-                        )
-                      }
-                      onClick={() => handleDeleteProject(project.id)}
-                      disabled={DeleteProject.isPending}
-                    >
-                      Delete
-                    </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="primary"
+                        startIcon={<Edit size={16} />}
+                        onClick={() => handleEditProject(project)}
+                        disabled={UpdateProject.isPending}
+                      >
+                        <span className="hidden sm:inline">Edit</span>
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="error"
+                        startIcon={
+                          DeleteProject.isPending ? (
+                            <CircularProgress size={16} />
+                          ) : (
+                            <Trash2 size={16} />
+                          )
+                        }
+                        onClick={() => handleDeleteProject(project.id)}
+                        disabled={DeleteProject.isPending}
+                      >
+                        <span className="hidden sm:inline">Delete</span>
+                      </Button>
+                    </div>
                   </div>
+                  <p className="text-sm text-gray-600 whitespace-pre-line break-words line-clamp-2">
+                    {project.description}
+                  </p>
                 </div>
               </div>
             ))}

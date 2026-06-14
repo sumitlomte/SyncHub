@@ -1,5 +1,5 @@
 import api from "./axios";
-import type { AddRemoveTeamMember } from "../Types/team";
+import type { AddRemoveTeamMember } from "../types/team";
 
 export const addTeamMembers = async (data: AddRemoveTeamMember) => {
     const { productId, userIds } = data;

@@ -4,7 +4,7 @@ import { Button, IconButton } from "@mui/material"
 import MoreVertIcon from "@mui/icons-material/MoreVert"
 import UserModal from "./Modals/UserModal"
 import { useState } from "react"
-import type { User, RegisterUser, UpdateUser } from "../Types/user"
+import type { User, RegisterUser, UpdateUser } from "../types/user"
 import { Popover } from '@mui/material';
 import { useNavigate } from "@tanstack/react-router";
 

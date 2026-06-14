@@ -1,5 +1,6 @@
-import { Modal, Box, TextField, Button, MenuItem } from "@mui/material"
-import { startTransition, useEffect, useState } from "react"
+import { Modal, Box, TextField, Button, MenuItem, FormHelperText } from "@mui/material"
+import { useEffect } from "react"
+import { useFormValidation, userFormValidator } from "../../hook/use-form-validation"
 
 type User = {
   id?: string
@@ -18,34 +19,38 @@ type Props = {
 
 export default function UserModal({ open, onClose, onSubmit, user }: Props) {
 
-  const [form, setForm] = useState<User>({
-    name: "",
-    email: "",
-    role: "USER",
-    password: "",
+  const { values, errors, touched, isSubmitting, handleChange, handleBlur, handleSubmit, setValues } = useFormValidation({
+    initialValues: {
+      name: "",
+      email: "",
+      role: "USER",
+      password: "",
+    },
+    validate: userFormValidator,
+    onSubmit: (data) => {
+      onSubmit(data as User)
+      onClose()
+    },
   })
 
   useEffect(() => {
-    startTransition(() => {
-      if (user) {
-        setForm(user)
-      } else {
-        setForm({ name: "", email: "", role: "USER" })
-      }
-    })
-  }, [user])
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    })
-  }
-
-  const handleSubmit = () => {
-    onSubmit(form)
-    onClose()
-  }
+    if (user) {
+      setValues({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        password: "",
+      })
+    } else {
+      setValues({
+        name: "",
+        email: "",
+        role: "USER",
+        password: "",
+      })
+    }
+  }, [user, setValues])
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -55,55 +60,79 @@ export default function UserModal({ open, onClose, onSubmit, user }: Props) {
           {user ? "Edit User" : "Create User"}
         </h2>
 
-        <div className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
-          <TextField
-            label="Name"
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            fullWidth
-          />
+          <div>
+            <TextField
+              label="Name"
+              name="name"
+              value={values.name}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              fullWidth
+              error={!!(touched.name && errors.name)}
+            />
+            {touched.name && errors.name && (
+              <FormHelperText error>{errors.name}</FormHelperText>
+            )}
+          </div>
 
-          <TextField
-            label="Email"
-            name="email"
-            value={form.email}
-            onChange={handleChange}
-            fullWidth
-          />
+          <div>
+            <TextField
+              label="Email"
+              name="email"
+              type="email"
+              value={values.email}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              fullWidth
+              error={!!(touched.email && errors.email)}
+            />
+            {touched.email && errors.email && (
+              <FormHelperText error>{errors.email}</FormHelperText>
+            )}
+          </div>
 
-          <TextField
-            select
-            label="Role"
-            name="role"
-            value={form.role}
-            onChange={handleChange}
-            fullWidth
-          >
-            <MenuItem value="USER">USER</MenuItem>
-            <MenuItem value="ADMIN">ADMIN</MenuItem>
-          </TextField>
+          <div>
+            <TextField
+              select
+              label="Role"
+              name="role"
+              value={values.role}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              fullWidth
+            >
+              <MenuItem value="USER">USER</MenuItem>
+              <MenuItem value="ADMIN">ADMIN</MenuItem>
+            </TextField>
+          </div>
 
-        <TextField
-            label="Password"
-            name="password"
-            value={form.password}
-            onChange={handleChange}
-            fullWidth
-          />          
+          <div>
+            <TextField
+              label="Password"
+              name="password"
+              type="password"
+              value={values.password}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              fullWidth
+              error={!!(touched.password && errors.password)}
+              helperText={touched.password && errors.password ? errors.password : "Leave empty to keep current password"}
+            />
+          </div>
 
           <div className="flex justify-end gap-3 mt-2">
-            <Button variant="outlined" onClick={onClose}>
+            <Button variant="outlined" onClick={onClose} disabled={isSubmitting}>
               Cancel
             </Button>
 
-            <Button variant="contained" onClick={handleSubmit}>
-              {user ? "Update" : "Create"}
+            <Button variant="contained" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Saving..." : user ? "Update" : "Create"}
             </Button>
           </div>
 
-        </div>
+        </form>
 
       </Box>
     </Modal>

@@ -3,16 +3,16 @@ import { Plus, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { CircularProgress } from '@mui/material';
 import useProjects from '../../../hook/use-project';
 import useTasks from '../../../hook/use-task';
-import { userStore } from '../../../store/user-store';
+import { userStore } from '../../../store/Auth-store';
 import TaskModal from '../../Modals/TaskModal';
-import type { Task } from '../../../Types/task';
-import type { ProjectItem } from '../../../Types/project';
+import type { Task } from '../../../types/task';
+import type { ProjectItem } from '../../../types/project';
 
 interface TaskFormData {
   title: string;
   description: string;
   status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED';
-  dueDate?: Date;
+  dueDate?: Date | string;
   assignedTo?: string;
 }
 
@@ -74,7 +74,7 @@ export default function Task() {
           assignee: selectedTask.assigneeId || selectedTask.assignee,
           assignedTo: formData.assignedTo || selectedTask.assignedUserId || selectedTask.assignedTo,
           status: formData.status,
-          dueDate: formData.dueDate || selectedTask.dueDate,
+          dueDate: formData.dueDate ? new Date(formData.dueDate) : selectedTask.dueDate,
         }
       });
     } else {

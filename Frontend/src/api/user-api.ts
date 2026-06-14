@@ -1,5 +1,5 @@
 import api from "./axios";
-import type { RegisterUser, UpdateUser, LoginUser } from "../Types/user";
+import type { RegisterUser, UpdateUser, LoginUser } from "../types/user";
 
 
 export const getUsers = async () => {

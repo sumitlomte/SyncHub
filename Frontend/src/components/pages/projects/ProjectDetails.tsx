@@ -6,15 +6,12 @@ import useProjects from "../../../hook/use-project"
 import ProjectConversation from "../../ProjectConversation"
 import useTeam from "../../../hook/use-team"
 import useUsers from "../../../hook/use-user"
-import type { User } from "../../../Types/user"
+import type { User } from "../../../types/user"
 
 export default function ProjectDetails() {
   const { projectId } = useParams({ strict: false })
   const navigate = useNavigate()
   const { RemoveTeamMembers, AddTeamMembers } = useTeam()
-
-  
-
   const [teamAnchorEl, setTeamAnchorEl] = useState<HTMLElement | null>(null)
   
   // Add Member State

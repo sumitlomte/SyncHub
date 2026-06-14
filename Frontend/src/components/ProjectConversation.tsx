@@ -1,70 +1,196 @@
 import { useState, useRef, useEffect } from "react"
 import { Button, Avatar, CircularProgress, IconButton, Tooltip } from "@mui/material"
 import { Send, Smile, Paperclip } from "lucide-react"
-import { userStore } from "../store/user-store"
+import { userStore } from "../store/Auth-store"
 import socket from "../Socket"
 import { useParams } from "@tanstack/react-router"
+import { toastManager } from "../utils/toast"
+import { logger } from "../utils/logger"
+import { type Message, type ServerMessage, normalizeMessage } from "../utils/message"
+import useMessage from "../hook/use-message"
 
-interface Message {
-  id: string
+interface TypingUser {
   userId: string
   userName: string
-  userAvatar?: string
-  content: string
-  timestamp: Date
 }
 
 export default function ProjectConversation() {
-  const [messages, setMessages] = useState<Message[]>([])
+  const [socketMessages, setSocketMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState("")
-  const [loading] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [typingUsers, setTypingUsers] = useState<TypingUser[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const typingThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const currentProjectIdRef = useRef<string | undefined>(undefined)
   const { user } = userStore.get()
   const { projectId } = useParams({ strict: false })
+  
+  // Fetch messages from API
+  const { messages: fetchedMessages, isLoadingMessages, messageError } = useMessage(projectId as string)
+  
+  // Combine API messages with Socket.IO real-time messages
+  const allMessages = [...(fetchedMessages || []), ...socketMessages]
+
+  // Update ref without triggering re-renders
+  useEffect(() => {
+    currentProjectIdRef.current = projectId
+  }, [projectId])
 
   useEffect(() => {
-    socket.on("message-from-server", (message: Message) => {
-      setMessages((prevMessages) =>
-        prevMessages.some((m) => m.id === message.id)
-          ? prevMessages
-          : [...prevMessages, message]
-      )
+    socket.on("message-from-server", (message: ServerMessage) => {
+      try {
+        // Only add messages for the current project
+        if (message.projectId !== currentProjectIdRef.current) return
+
+        const normalizedMessage = normalizeMessage(message)
+        setSocketMessages((prevMessages) => {
+          // Deduplicate by checking if a message with same content, userId, and recent timestamp exists
+          const isDuplicate = prevMessages.some((m) => {
+            const messageTime = typeof normalizedMessage.timestamp === 'string' 
+              ? new Date(normalizedMessage.timestamp).getTime()
+              : normalizedMessage.timestamp instanceof Date
+                ? normalizedMessage.timestamp.getTime()
+                : 0
+            
+            const prevMessageTime = typeof m.timestamp === 'string'
+              ? new Date(m.timestamp).getTime()
+              : m.timestamp instanceof Date
+                ? m.timestamp.getTime()
+                : 0
+            
+            // Match by userId + content + timestamp within 1 second (for optimistic updates)
+            return (
+              m.userId === normalizedMessage.userId &&
+              m.content === normalizedMessage.content &&
+              Math.abs(messageTime - prevMessageTime) < 1000
+            )
+          })
+          
+          return isDuplicate ? prevMessages : [...prevMessages, normalizedMessage]
+        })
+      } catch (err) {
+        logger.error("Failed to add message", err as Error, { message })
+      }
+    })
+
+    socket.on("message-error", (data: { error: string }) => {
+      logger.warn("Message save failed", { error: data.error })
+      toastManager.show("error", "Failed to send message. Please try again.")
+      setSending(false)
+    })
+
+    socket.on("user-typing", (data: { projectId: string; userId: string; userName: string }) => {
+      try {
+        setTypingUsers((prevTyping) => {
+          const exists = prevTyping.some((u) => u.userId === data.userId)
+          if (exists) return prevTyping
+          
+          return [...prevTyping, { userId: data.userId, userName: data.userName }]
+        })
+      } catch (error) {
+        logger.warn("Failed to update typing users", { error: String(error) })
+      }
+    })
+
+    socket.on("user-stopped-typing", (data: { projectId: string; userId: string; userName: string }) => {
+      try {
+        setTypingUsers((prevTyping) => prevTyping.filter((u) => u.userId !== data.userId))
+      } catch (error) {
+        logger.warn("Failed to remove typing user", { error: String(error) })
+      }
+    })
+
+    socket.on("connect_error", (error: { message: string }) => {
+      logger.error("Socket connection error", new Error(error.message))
+      toastManager.show("error", "Connection failed. Trying to reconnect...")
+    })
+
+    socket.on("disconnect", (reason: string) => {
+      if (reason !== "io client namespace disconnect") {
+        logger.warn("Socket disconnected", { reason })
+        toastManager.show("warning", "Connection lost. Reconnecting...")
+      }
     })
 
     return () => {
       socket.off("message-from-server")
-
+      socket.off("message-error")
+      socket.off("user-typing")
+      socket.off("user-stopped-typing")
+      socket.off("connect_error")
+      socket.off("disconnect")
     }
   }, [])
 
   // Join/leave the project room when the active project changes
   useEffect(() => {
     if (!projectId) return
+    
     socket.emit("join-project", projectId, user?.id)
+    
     return () => {
+      // Clean up: reset messages when leaving the project
+      setSocketMessages([])
       socket.emit("leave-project", projectId, user?.id)
     }
   }, [projectId, user?.id])
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
+    }
+  }, [allMessages.length]) // Only depend on length to avoid excessive scrolling
 
   const handleSendMessage = () => {
-    if (!inputValue.trim()) return
-
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      userId: user?.id || "current_user",
-      userName: user?.name || "You",
-      content: inputValue,
-      timestamp: new Date(),
+    if (!inputValue.trim() || !user?.id || !projectId) {
+      if (!user?.id) {
+        toastManager.show("error", "User information is missing. Please refresh the page.")
+        logger.warn("Send message failed: missing user data")
+      }
+      if (!projectId) {
+        toastManager.show("error", "Project information is missing. Please navigate back and try again.")
+        logger.warn("Send message failed: missing projectId")
+      }
+      return
     }
 
-    setMessages((prev) => [...prev, newMessage])
-    setInputValue("")
-    socket.emit("project-message", { ...newMessage, projectId })
+    try {
+      setSending(true)
+
+      const newMessage: Message = {
+        id: Date.now().toString(),
+        userId: user.id,
+        userName: user.name || "You",
+        content: inputValue,
+        timestamp: new Date(),
+      }
+
+      // Optimistically add to UI
+      setSocketMessages((prev) => [...prev, newMessage])
+      setInputValue("")
+
+      // Emit to server
+      socket.emit("project-message", { ...newMessage, projectId }, (ackError?: string) => {
+        setSending(false)
+        if (ackError) {
+          logger.error("Message acknowledgement error", new Error(ackError), { ackError })
+          toastManager.show("error", "Failed to send message. Please try again.")
+        } else {
+          logger.info("Message sent successfully")
+        }
+      })
+
+      // Emit stop-typing when message is sent
+      socket.emit("stop-typing", { projectId, userId: user.id, userName: user.name })
+    } catch (error) {
+      setSending(false)
+      logger.error("Error sending message", error as Error, {
+        projectId,
+        userId: user?.id,
+      })
+      toastManager.show("error", "Failed to send message. Please try again.")
+    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -74,15 +200,52 @@ export default function ProjectConversation() {
     }
   }
 
+  const handleTyping = () => {
+    if (!user?.id || !projectId) return
+
+    // Throttle typing events - only emit once every 500ms
+    if (typingThrottleRef.current) {
+      return
+    }
+
+    try {
+      socket.emit("typing", { userId: user.id, projectId, userName: user.name })
+
+      typingThrottleRef.current = setTimeout(() => {
+        typingThrottleRef.current = null
+      }, 500)
+    } catch (error) {
+      logger.warn("Failed to emit typing event", { error: String(error) })
+    }
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50">
-        {loading ? (
+        {isLoadingMessages ? (
           <div className="flex items-center justify-center h-full">
             <CircularProgress />
           </div>
-        ) : messages.length === 0 ? (
+        ) : messageError ? (
+          <div className="flex items-center justify-center h-full text-center">
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-red-100 max-w-sm">
+              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Smile size={32} />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-1">Failed to load messages</h3>
+              <p className="text-gray-500 text-sm mb-4">{messageError}</p>
+              <Button 
+                variant="contained" 
+                color="primary" 
+                size="small"
+                onClick={() => window.location.reload()}
+              >
+                Try Again
+              </Button>
+            </div>
+          </div>
+        ) : allMessages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-center">
             <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 max-w-sm">
               <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -93,10 +256,10 @@ export default function ProjectConversation() {
             </div>
           </div>
         ) : (
-          messages.map((message, index) => {
+          allMessages.map((message, index) => {
             const isOwn = message.userId === user?.id
             const isConsecutive = 
-              index > 0 && messages[index - 1].userId === message.userId
+              index > 0 && allMessages[index - 1].userId === message.userId
 
             return (
               <div
@@ -124,10 +287,25 @@ export default function ProjectConversation() {
                         {isOwn ? "You" : message.userName}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {new Date(message.timestamp).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {(() => {
+                          try {
+                            const date = typeof message.timestamp === 'string' 
+                              ? new Date(message.timestamp)
+                              : message.timestamp
+                            
+                            if (isNaN(date.getTime())) {
+                              return "Invalid time"
+                            }
+                            
+                            return date.toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          } catch (error) {
+                            logger.warn("Failed to format timestamp", { timestamp: message.timestamp, error: String(error) })
+                            return "Invalid time"
+                          }
+                        })()}
                       </p>
                     </div>
                   )}
@@ -157,6 +335,22 @@ export default function ProjectConversation() {
             )
           })
         )}
+        
+        {/* Typing Indicator */}
+        {typingUsers.length > 0 && (
+          <div className="flex items-center gap-2 text-sm text-gray-500 px-2">
+            <span className="font-medium">
+              {typingUsers.length === 1
+                ? `${typingUsers[0].userName} is typing...`
+                : `${typingUsers.map((u) => u.userName).join(", ")} are typing...`}
+            </span>
+            <div className="flex gap-1">
+              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></span>
+              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></span>
+              <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></span>
+            </div>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
@@ -178,7 +372,7 @@ export default function ProjectConversation() {
             {/* Text Input */}
             <textarea
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={(e) => {setInputValue(e.target.value); handleTyping();}}
               onKeyPress={handleKeyPress}
               placeholder="Reply to the conversation..."
               className="flex-1 max-h-32 py-3 px-2 bg-transparent focus:outline-none resize-none text-sm text-gray-800 placeholder-gray-400"
@@ -191,7 +385,7 @@ export default function ProjectConversation() {
                 variant="contained"
                 color="primary"
                 onClick={handleSendMessage}
-                disabled={!inputValue.trim()}
+                disabled={!inputValue.trim() || sending}
                 sx={{
                   minWidth: 0,
                   width: 36,
@@ -200,7 +394,11 @@ export default function ProjectConversation() {
                   padding: 0,
                 }}
               >
-                <Send size={16} className={inputValue.trim() ? "ml-0.5" : ""} />
+                {sending ? (
+                  <CircularProgress size={16} sx={{ color: 'white' }} />
+                ) : (
+                  <Send size={16} className={inputValue.trim() ? "ml-0.5" : ""} />
+                )}
               </Button>
             </div>
           </div>

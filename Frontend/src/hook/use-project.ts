@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient  } from "@tanstack/react-query";
 import { fetchAllProjectsByUserID, fetchProject, createProject, updateProject, deleteProject, getAllProjectsList } from "../api/project-api";
-import type { Project, UpdateProject, CreateProject } from "../Types/project";
-import { userStore } from "../store/user-store";
+import type { Project, UpdateProject, CreateProject } from "../types/project";
+import { userStore } from "../store/Auth-store";
+import { toastManager } from "../utils/toast";
+import { logger } from "../utils/logger";
 
 export default function useProjects(enableAllProjectsList: boolean = false, enableAllProjectsByUserID: boolean = true, projectId?: string) {
     const { user } = userStore.get()
-    console.log("useProjects called with user:", user, "enableAllProjectsList:", enableAllProjectsList, "enableAllProjectsByUserID:", enableAllProjectsByUserID, "projectId:", projectId);
     const queryClient = useQueryClient()
 
     const GetAllProjectsByUserID = useQuery<Project[]>({
@@ -24,22 +25,37 @@ export default function useProjects(enableAllProjectsList: boolean = false, enab
     const CreateProject = useMutation<CreateProject, Error, CreateProject>({
         mutationFn: createProject,
         onSuccess: () => {
+            toastManager.success("Project created successfully!");
             queryClient.invalidateQueries({ queryKey: ["projects"] });
+        },
+        onError: (error) => {
+            logger.error("Create project failed", error);
+            toastManager.error("Failed to create project. Please try again.");
         }
     });
 
     const UpdateProject = useMutation<UpdateProject, Error, UpdateProject>({
         mutationFn: updateProject,
         onSuccess: () => {
+            toastManager.success("Project updated successfully!");
             queryClient.invalidateQueries({ queryKey: ["projects"] });
+        },
+        onError: (error) => {
+            logger.error("Update project failed", error);
+            toastManager.error("Failed to update project. Please try again.");
         }
     }); 
 
     const DeleteProject = useMutation({
         mutationFn: deleteProject,
         onSuccess: () => {
+            toastManager.success("Project deleted successfully!");
             queryClient.invalidateQueries({ queryKey: ["projects"] });
-       }
+       },
+        onError: (error) => {
+            logger.error("Delete project failed", error instanceof Error ? error : new Error(String(error)));
+            toastManager.error("Failed to delete project. Please try again.");
+        }
     });
 
     const GetAllProjectsList = useQuery<(Project & { userId: never; description: never })[]>({

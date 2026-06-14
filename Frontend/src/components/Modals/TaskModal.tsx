@@ -1,15 +1,19 @@
-import { Modal, Box, TextField, Button, MenuItem, CircularProgress } from "@mui/material"
-import { startTransition, useEffect, useState } from "react"
-import type { Task } from "../../Types/task"
+import { Modal, Box, TextField, Button, MenuItem, CircularProgress, FormHelperText } from "@mui/material"
+import { useEffect } from "react"
+import type { Task } from "../../types/task"
 import useUsers from "../../hook/use-user"
+import { useFormValidation } from "../../hook/use-form-validation"
 
 type TaskFormData = {
+  id?: string
   title: string
   description: string
+  projectId?: string
   status: "TODO" | "IN_PROGRESS" | "COMPLETED"
-  dueDate?: Date
+  dueDate?: Date | string
   assignedTo?: string
   assignee?: string
+  assignedUserId?: string
 }
 
 type Props = {
@@ -26,57 +30,58 @@ export default function TaskModal({ open, onClose, onSubmit, onDelete, task, isL
   const { GetAllUsers } = useUsers()
   const { data: users } = GetAllUsers
 
-  const [form, setForm] = useState<TaskFormData>({
-    title: "",
-    description: "",
-    status: "TODO",
-    dueDate: undefined,
+  const { values, errors, touched, isSubmitting, handleChange, handleBlur, handleSubmit, setValues } = useFormValidation({
+    initialValues: {
+      title: "",
+      description: "",
+      status: "TODO",
+      dueDate: "",
+      assignedTo: "",
+      projectId: "",
+    },
+    validate: (formValues) => {
+      // Custom validation for task
+      const errors: Record<string, string> = {}
+      
+      if (!formValues.title || typeof formValues.title !== "string" || !formValues.title.trim()) {
+        errors.title = "Title is required"
+      }
+      
+      if (formValues.description && typeof formValues.description === "string" && formValues.description.length > 500) {
+        errors.description = "Description must be less than 500 characters"
+      }
+      
+      return errors
+    },
+    onSubmit: (data) => {
+      onSubmit(data as TaskFormData)
+      onClose()
+    },
   })
 
   useEffect(() => {
-    startTransition(() => {
-      if (task) {
-        setForm({
-          title: task.title,
-          description: task.description,
-          status: task.status,
-          dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
-          assignedTo: task.assignedUserId || (task.assignedTo === 'Unassigned' ? "" : task.assignedTo) || "",
-        })
-      } else {
-        setForm({ title: "", description: "", status: "TODO", dueDate: undefined, assignedTo: "" })
-      }
-    })
-  }, [task])
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setForm({
-      ...form,
-      [name]: value,
-    })
-  }
-
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({
-      ...form,
-      dueDate: e.target.value ? new Date(e.target.value) : undefined,
-    })
-  }
-
-  const handleSubmit = () => {
-    if (!form.title.trim()) {
-      alert("Please enter a title")
-      return
+    if (task) {
+      setValues({
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : "",
+        assignedTo: task.assignedUserId || (task.assignedTo === "Unassigned" ? "" : task.assignedTo) || "",
+        projectId: task.projectId,
+        assignee: task.assignee,
+      })
+    } else {
+      setValues({
+        title: "",
+        description: "",
+        status: "TODO",
+        dueDate: "",
+        assignedTo: "",
+        projectId: "",
+      })
     }
-    onSubmit(form)
-    onClose()
-  }
-
-  const formatDateForInput = (date?: Date) => {
-    if (!date) return ""
-    return new Date(date).toISOString().split("T")[0]
-  }
+  }, [task, setValues])
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -86,41 +91,56 @@ export default function TaskModal({ open, onClose, onSubmit, onDelete, task, isL
           {task ? "Edit Task" : "Create Task"}
         </h2>
 
-        <div className="flex flex-col gap-3">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
 
-          <TextField
-            label="Title"
-            name="title"
-            value={form.title}
-            onChange={handleChange}
-            fullWidth
-            size="small"
-            placeholder="What needs to be done?"
-            disabled={isLoading}
-          />
+          <div>
+            <TextField
+              label="Title"
+              name="title"
+              value={values.title}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              fullWidth
+              size="small"
+              placeholder="What needs to be done?"
+              disabled={isLoading || isSubmitting}
+              error={!!(touched.title && errors.title)}
+            />
+            {touched.title && errors.title && (
+              <FormHelperText error>{errors.title}</FormHelperText>
+            )}
+          </div>
 
-          <TextField
-            label="Description"
-            name="description"
-            value={form.description}
-            onChange={handleChange}
-            fullWidth
-            size="small"
-            placeholder="Add more details..."
-            multiline
-            rows={4}
-            disabled={isLoading}
-          />
+          <div>
+            <TextField
+              label="Description"
+              name="description"
+              value={values.description}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              fullWidth
+              size="small"
+              placeholder="Add more details..."
+              multiline
+              rows={4}
+              disabled={isLoading || isSubmitting}
+              error={!!(touched.description && errors.description)}
+            />
+            {touched.description && errors.description && (
+              <FormHelperText error>{errors.description}</FormHelperText>
+            )}
+          </div>
 
           <TextField
             select
             label="Assign To"
             name="assignedTo"
-            value={form.assignedTo}
+            value={values.assignedTo}
             onChange={handleChange}
+            onBlur={handleBlur}
             fullWidth
             size="small"
-            disabled={isLoading}
+            disabled={isLoading || isSubmitting}
           >
             <MenuItem value="">Select Assignee</MenuItem>
             {users?.map((user) => (
@@ -134,11 +154,12 @@ export default function TaskModal({ open, onClose, onSubmit, onDelete, task, isL
             select
             label="Status"
             name="status"
-            value={form.status}
+            value={values.status}
             onChange={handleChange}
+            onBlur={handleBlur}
             fullWidth
             size="small"
-            disabled={isLoading}
+            disabled={isLoading || isSubmitting}
           >
             <MenuItem value="TODO">To Do</MenuItem>
             <MenuItem value="IN_PROGRESS">In Progress</MenuItem>
@@ -149,11 +170,12 @@ export default function TaskModal({ open, onClose, onSubmit, onDelete, task, isL
             label="Due Date"
             name="dueDate"
             type="date"
-            value={formatDateForInput(form.dueDate)}
-            onChange={handleDateChange}
+            value={values.dueDate}
+            onChange={handleChange}
+            onBlur={handleBlur}
             fullWidth
             size="small"
-            disabled={isLoading}
+            disabled={isLoading || isSubmitting}
             InputLabelProps={{
               shrink: true,
             }}
@@ -163,7 +185,7 @@ export default function TaskModal({ open, onClose, onSubmit, onDelete, task, isL
             <Button 
               variant="outlined" 
               onClick={onClose}
-              disabled={isLoading}
+              disabled={isLoading || isSubmitting}
             >
               Cancel
             </Button>
@@ -173,12 +195,12 @@ export default function TaskModal({ open, onClose, onSubmit, onDelete, task, isL
                 variant="outlined" 
                 color="error"
                 onClick={() => {
-                  if (confirm('Are you sure you want to delete this task?')) {
+                  if (confirm("Are you sure you want to delete this task?")) {
                     onDelete(task.id)
                     onClose()
                   }
                 }}
-                disabled={isLoading}
+                disabled={isLoading || isSubmitting}
               >
                 Delete
               </Button>
@@ -186,15 +208,15 @@ export default function TaskModal({ open, onClose, onSubmit, onDelete, task, isL
 
             <Button 
               variant="contained" 
-              onClick={handleSubmit}
-              disabled={isLoading}
-              startIcon={isLoading && <CircularProgress size={20} />}
+              type="submit"
+              disabled={isLoading || isSubmitting}
+              startIcon={(isLoading || isSubmitting) && <CircularProgress size={20} />}
             >
-              {task ? "Update Task" : "Create Task"}
+              {isLoading || isSubmitting ? "Saving..." : task ? "Update Task" : "Create Task"}
             </Button>
           </div>
 
-        </div>
+        </form>
 
       </Box>
     </Modal>

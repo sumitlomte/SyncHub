@@ -1,6 +1,6 @@
 import { useParams } from "@tanstack/react-router";
 import useUsers from "../hook/use-user";
-import type { AssignedProjects } from "../Types/user";
+import type { AssignedProjects } from "../types/user";
 
 export default function AssignedProjects() {
 

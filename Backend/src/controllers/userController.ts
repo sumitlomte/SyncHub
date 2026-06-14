@@ -12,7 +12,7 @@ export const registerUser = async (req: Request, res: Response) => {
         const user = await prisma.user.create({
             data: {
                 name,
-                email,
+                email: email.toLowerCase(),
                 password,
                 role
             }
@@ -31,7 +31,7 @@ export const deleteUser = async (req: Request<{ id: string }>, res: Response) =>
 
     try {
         await prisma.user.delete({
-            where: { id }
+            where: { id: String(id) }
         });
         res.json({ message: "User deleted successfully" });
     } catch (error) {
@@ -54,7 +54,7 @@ export const updateUser = async (req: Request<{ id: string }>, res: Response) =>
     }
     try {
         const user = await prisma.user.update({
-            where: { id },
+            where: { id: String(id) },
             data: {
                 name,
                 email,
@@ -100,14 +100,14 @@ export const assignedProjects = async (req: Request, res: Response) => {
     const { id } = req.params;
     try {
         const projects = await prisma.project.findMany({
-            where: { userId: id }
+            where: { userId: String(id) }
         });
         if (projects.length === 0) {
             return res.status(404).json({ error: "No projects found for this user" });
         }
         const tasksForEachProject = await Promise.all(projects.map(async (project) => {
             const tasks = await prisma.task.findMany({
-                where: { projectId: project.id , assignedUserId: id }
+                where: { projectId: project.id , assignedUserId: String(id) }
             });
             const totalTasks = tasks.length;
             const todoTasks = tasks.filter(task => task.status === "TODO").length;

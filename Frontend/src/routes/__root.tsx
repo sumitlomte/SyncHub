@@ -1,4 +1,4 @@
-import { createRootRoute, Outlet } from "@tanstack/react-router"
+import { createRootRoute, Outlet, useLocation } from "@tanstack/react-router"
 import SideNav from "../components/SideNav"
 
 export const Route = createRootRoute({
@@ -18,6 +18,9 @@ function NotFound() {
 }
 
 function RootLayout() {
+  const location = useLocation()
+  const isLoginPage = location.pathname === "/login" || location.pathname === "/login/"
+
   return (
     <div style={{ display: "flex" }}>
       <style>
@@ -39,7 +42,7 @@ function RootLayout() {
           }
         `}
       </style>
-      <SideNav />
+      {!isLoginPage && <SideNav />}
 
       <div style={{ flex: 1 }}>
         <Outlet />

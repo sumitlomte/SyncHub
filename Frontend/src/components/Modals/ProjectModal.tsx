@@ -1,5 +1,6 @@
-import { Modal, Box, TextField, Button } from "@mui/material"
-import { startTransition, useEffect, useState } from "react"
+import { Modal, Box, TextField, Button, FormHelperText } from "@mui/material"
+import { useEffect } from "react"
+import { useFormValidation, projectFormValidator } from "../../hook/use-form-validation"
 
 export type ProjectFormData = {
   id?: string
@@ -19,32 +20,33 @@ type Props = {
 
 export default function ProjectModal({ open, onClose, onSubmit, project }: Props) {
 
-  const [form, setForm] = useState<Project>({
-    title: "",
-    description: "",
+  const { values, errors, touched, isSubmitting, handleChange, handleBlur, handleSubmit, setValues } = useFormValidation({
+    initialValues: {
+      title: "",
+      description: "",
+    },
+    validate: projectFormValidator,
+    onSubmit: (data) => {
+      onSubmit(data as Project)
+      onClose()
+    },
   })
 
   useEffect(() => {
-    startTransition(() => {
-      if (project) {
-        setForm(project)
-      } else {
-        setForm({ title: "", description: "" })
-      }
-    })
-  }, [project])
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    })
-  }
-
-  const handleSubmit = () => {
-    onSubmit(form)
-    onClose()
-  }
+    if (project) {
+      setValues({
+        id: project.id,
+        title: project.title,
+        description: project.description,
+        userId: project.userId,
+      })
+    } else {
+      setValues({
+        title: "",
+        description: "",
+      })
+    }
+  }, [project, setValues])
 
   return (
     <Modal open={open} onClose={onClose}>
@@ -54,37 +56,51 @@ export default function ProjectModal({ open, onClose, onSubmit, project }: Props
           {project ? "Edit Project" : "Create Project"}
         </h2>
 
-        <div className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
-          <TextField
-            label="Project Title"
-            name="title"
-            value={form.title}
-            onChange={handleChange}
-            fullWidth
-          />
+          <div>
+            <TextField
+              label="Project Title"
+              name="title"
+              value={values.title}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              fullWidth
+              error={!!(touched.title && errors.title)}
+            />
+            {touched.title && errors.title && (
+              <FormHelperText error>{errors.title}</FormHelperText>
+            )}
+          </div>
 
-          <TextField
-            label="Description"
-            name="description"
-            value={form.description}
-            onChange={handleChange}
-            fullWidth
-            multiline
-            rows={4}
-          />
+          <div>
+            <TextField
+              label="Description"
+              name="description"
+              value={values.description}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              fullWidth
+              multiline
+              rows={4}
+              error={!!(touched.description && errors.description)}
+            />
+            {touched.description && errors.description && (
+              <FormHelperText error>{errors.description}</FormHelperText>
+            )}
+          </div>
 
           <div className="flex justify-end gap-3 mt-2">
-            <Button variant="outlined" onClick={onClose}>
+            <Button variant="outlined" onClick={onClose} disabled={isSubmitting}>
               Cancel
             </Button>
 
-            <Button variant="contained" onClick={handleSubmit}>
-              {project ? "Update" : "Create"}
+            <Button variant="contained" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Saving..." : project ? "Update" : "Create"}
             </Button>
           </div>
 
-        </div>
+        </form>
 
       </Box>
     </Modal>
