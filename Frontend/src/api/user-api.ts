@@ -49,6 +49,15 @@ export const logoutUser = async () => {
 }
 
 export const getAssignedProjects = async (userId: string) => {
-  const response = await api.get(`/users/assignedProjects/${userId}`);
-  return response.data;
+  try {
+    const response = await api.get(`/users/assignedProjects/${userId}`);
+    return response.data;
+  } catch (error: unknown) {
+    // Handle 404 - return empty array if no projects found
+    if ((error as { response?: { status: number } }).response?.status === 404) {
+      return [];
+    }
+    // Re-throw other errors
+    throw error;
+  }
 }

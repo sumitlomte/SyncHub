@@ -9,6 +9,7 @@
     "format:watch": "onchange \"**/*.{js,ts,json}\" -- prettier --write {{changed}}",
     "dev": "nodemon --exec tsx src/server.ts",
     "build": "tsc",
+    "build:production": "tsc --build tsconfig.prod.json",
     "start": "node dist/server.js"
   },
   "keywords": [],

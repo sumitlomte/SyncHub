@@ -1,12 +1,13 @@
 import { useParams } from "@tanstack/react-router";
 import useUsers from "../hook/use-user";
 import type { AssignedProjects } from "../types/user";
+import { CardSkeleton } from "./ui/Skeleton";
 
 export default function AssignedProjects() {
 
   const { userId } = useParams({ strict: false });
   const { GetAssignedProjects } = useUsers();
-  const { data: AssignedProjects = [] } = GetAssignedProjects(userId);
+  const { data: AssignedProjects = [], isLoading, error } = GetAssignedProjects(userId);
 
   return (
     <div className="w-full p-6">
@@ -24,8 +25,19 @@ export default function AssignedProjects() {
             Assigned Projects
           </h2>
 
-          {/* No projects */}
-          {AssignedProjects.length === 0 ? (
+          {/* Error State */}
+          {error ? (
+            <div className="flex items-center justify-center h-60 bg-red-50 border border-red-200 rounded-lg p-6">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-red-800 mb-2">Unable to Load Projects</h3>
+                <p className="text-sm text-red-600">Failed to fetch assigned projects. Please try refreshing the page.</p>
+              </div>
+            </div>
+          ) : isLoading ? (
+            <div className="w-full">
+              <CardSkeleton count={3} />
+            </div>
+          ) : AssignedProjects.length === 0 ? (
             <div className="flex items-center justify-center h-60 text-gray-500">
               No projects assigned to this user.
             </div>

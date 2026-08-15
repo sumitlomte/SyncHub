@@ -7,6 +7,7 @@ import ProjectConversation from "../../ProjectConversation"
 import useTeam from "../../../hook/use-team"
 import useUsers from "../../../hook/use-user"
 import type { User } from "../../../types/user"
+import { DetailSkeleton } from "../../ui/Skeleton"
 
 export default function ProjectDetails() {
   const { projectId } = useParams({ strict: false })
@@ -75,7 +76,9 @@ export default function ProjectDetails() {
   if (isLoading) {
     return (
       <div className="w-full h-screen flex items-center justify-center bg-gray-50">
-        <CircularProgress />
+        <div className="w-full max-w-4xl px-6">
+          <DetailSkeleton />
+        </div>
       </div>
     )
   }

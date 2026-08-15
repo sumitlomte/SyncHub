@@ -7,6 +7,7 @@ import { useState } from "react"
 import type { User, RegisterUser, UpdateUser } from "../types/user"
 import { Popover } from '@mui/material';
 import { useNavigate } from "@tanstack/react-router";
+import { ListSkeleton } from "./ui/Skeleton";
 
 
 type UserFormValues = Omit<User, "id"> & { id?: string }
@@ -14,7 +15,7 @@ type UserFormValues = Omit<User, "id"> & { id?: string }
 export default function UserList() {
 
   const { GetAllUsers, RegisterUser, UpdateUser, DeleteUser } = useUsers()
-  const { data: users = [] } = GetAllUsers
+  const { data: users = [], isLoading } = GetAllUsers
   const [open, setOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
 
@@ -132,29 +133,35 @@ export default function UserList() {
       <div className="bg-white rounded-xl shadow border border-gray-200">
 
         <div className="max-h-[70vh]">
-          <DataGrid
-            rows={users}
-            columns={columns}
-            getRowId={(row) => row.id}
-            onRowClick={handleRowClick}
-            hideFooter
-            disableColumnMenu
-            disableColumnFilter
-            disableColumnSelector
-            disableRowSelectionOnClick
-            sx={{
-                "& .MuiDataGrid-cell": {
-                outline: "none",
-                userSelect: "none"
-                },
-                "& .MuiDataGrid-cell:focus": {
-                outline: "none"
-                },
-                "& .MuiDataGrid-cell:focus-within": {
-                outline: "none"
-                }
-            }}
-          />
+          {isLoading ? (
+            <div className="p-4">
+              <ListSkeleton rows={5} columns={4} />
+            </div>
+          ) : (
+            <DataGrid
+              rows={users}
+              columns={columns}
+              getRowId={(row) => row.id}
+              onRowClick={handleRowClick}
+              hideFooter
+              disableColumnMenu
+              disableColumnFilter
+              disableColumnSelector
+              disableRowSelectionOnClick
+              sx={{
+                  "& .MuiDataGrid-cell": {
+                  outline: "none",
+                  userSelect: "none"
+                  },
+                  "& .MuiDataGrid-cell:focus": {
+                  outline: "none"
+                  },
+                  "& .MuiDataGrid-cell:focus-within": {
+                  outline: "none"
+                  }
+              }}
+            />
+          )}
         </div>
 
       </div>

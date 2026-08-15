@@ -6,11 +6,12 @@ import useProjects from "../hook/use-project"
 import { userStore } from "../store/Auth-store"
 import ProjectModal, { type ProjectFormData } from "./Modals/ProjectModal"
 import type { Project } from "../types/project"
+import { CardSkeleton } from "./ui/Skeleton"
 
 export default function ProjectList() {
   const navigate = useNavigate()
   const { GetAllProjectsByUserID, CreateProject, UpdateProject, DeleteProject } = useProjects()
-  const { data: projects = [] } = GetAllProjectsByUserID
+  const { data: projects = [], isLoading } = GetAllProjectsByUserID
   const { user } = userStore.get()
   
   const [modalOpen, setModalOpen] = useState(false)
@@ -67,7 +68,11 @@ export default function ProjectList() {
       </div>
 
       <div className="bg-white rounded-xl shadow border border-gray-200">
-        {projects.length === 0 ? (
+        {isLoading ? (
+          <div className="p-3 sm:p-4">
+            <CardSkeleton count={4} />
+          </div>
+        ) : projects.length === 0 ? (
           <div className="p-12 text-center text-gray-500">
             <p className="text-lg">No projects found.</p>
             <p className="text-sm mt-2">Create your first project to get started.</p>

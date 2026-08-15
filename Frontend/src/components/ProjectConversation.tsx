@@ -9,6 +9,7 @@ import { logger } from "../utils/logger"
 import { type Message, type ServerMessage, normalizeMessage } from "../utils/message"
 import useMessage from "../hook/use-message"
 import { SocketEvents } from "../constants/socket-events"
+import { Skeleton, AvatarSkeleton } from "./ui/Skeleton"
 
 interface TypingUser {
   userId: string
@@ -231,8 +232,20 @@ export default function ProjectConversation() {
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50">
         {isLoadingMessages ? (
-          <div className="flex items-center justify-center h-full">
-            <CircularProgress />
+          <div className="space-y-6">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className={`flex gap-3 ${i % 2 === 0 ? "justify-start" : "justify-end"}`}>
+                {i % 2 === 0 && <AvatarSkeleton size={40} />}
+                <div className={`${i % 2 === 0 ? "max-w-xs" : "max-w-xs"} space-y-2`}>
+                  <Skeleton height={16} width={i % 2 === 0 ? "60%" : "100%"} />
+                  <div className="bg-white rounded-2xl p-4 space-y-2 border border-gray-200">
+                    <Skeleton height={14} width="100%" />
+                    <Skeleton height={14} width={i % 3 === 0 ? "80%" : "100%"} />
+                  </div>
+                  <Skeleton height={12} width="40%" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : messageError ? (
           <div className="flex items-center justify-center h-full text-center">

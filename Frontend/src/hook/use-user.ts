@@ -95,11 +95,12 @@ export default function useUsers() {
   });    
   
   function GetAssignedProjects(userId: string) {
-  return useQuery<AssignedProjects[]>({
-    queryKey: ["assignedProjects", userId],
-    queryFn: () => getAssignedProjects(userId),
-  });
-}
+    return useQuery<AssignedProjects[]>({
+      queryKey: ["assignedProjects", userId],
+      queryFn: () => getAssignedProjects(userId),
+      retry: false,  // Don't retry 404 errors
+    });
+  }
 
   return {GetAllUsers, LoginUser, RegisterUser, UpdateUser, DeleteUser, LogoutUser, GetAssignedProjects }
 }

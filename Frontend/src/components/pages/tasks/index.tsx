@@ -1,6 +1,5 @@
 import  { useState } from 'react';
 import { Plus, CheckCircle, Clock, AlertCircle } from 'lucide-react';
-import { CircularProgress } from '@mui/material';
 import useProjects from '../../../hook/use-project';
 import useTasks from '../../../hook/use-task';
 import { userStore } from '../../../store/Auth-store';
@@ -249,8 +248,20 @@ export default function Task() {
         {showProjectDropdown && (
           <div className="bg-white border-t border-slate-200 px-4 py-2 shadow-lg absolute top-16 left-1/2 transform -translate-x-1/2 w-80 max-h-80 overflow-y-auto z-50 rounded-b-lg">
             {projectsLoading ? (
-              <div className="flex items-center justify-center py-6">
-                <CircularProgress size={32} />
+              <div className="py-6">
+                <div className="space-y-2">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="p-3 rounded-lg border border-slate-200 bg-white space-y-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-neutral-200 animate-pulse" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-neutral-200 rounded w-32 animate-pulse" />
+                          <div className="h-3 bg-neutral-200 rounded w-48 animate-pulse" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : projects.length === 0 ? (
               <div className="text-center py-6">
@@ -311,7 +322,28 @@ export default function Task() {
           </main>
         ) : isPending ? (
           <main className="flex-1 flex items-center justify-center p-6">
-            <CircularProgress size={48} />
+            <div className="w-full max-w-6xl">
+              <div className="grid grid-cols-3 gap-6">
+                {['TODO', 'IN_PROGRESS', 'COMPLETED'].map((col) => (
+                  <div key={col} className="space-y-3">
+                    <div className="h-6 bg-neutral-200 rounded w-24 animate-pulse" />
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="bg-white p-4 rounded-lg border border-slate-200 space-y-3">
+                        <div className="h-4 bg-neutral-200 rounded w-32 animate-pulse" />
+                        <div className="space-y-2">
+                          <div className="h-3 bg-neutral-200 rounded w-full animate-pulse" />
+                          <div className="h-3 bg-neutral-200 rounded w-4/5 animate-pulse" />
+                        </div>
+                        <div className="flex justify-between pt-3 border-t border-slate-100">
+                          <div className="h-3 bg-neutral-200 rounded w-20 animate-pulse" />
+                          <div className="w-6 h-6 rounded-full bg-neutral-200 animate-pulse" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
           </main>
         ) : isError ? (
           <main className="flex-1 flex items-center justify-center p-6">
