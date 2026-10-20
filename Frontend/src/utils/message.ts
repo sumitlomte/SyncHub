@@ -1,8 +1,18 @@
 
+export interface MessageDocument {
+  id: string
+  fileName: string
+  fileType: string
+  fileSize: number
+}
+
 export interface ServerMessage {
   id: string
   userId: string
   content: string
+  projectId?: string
+  type?: "TEXT" | "DOCUMENT"
+  document?: MessageDocument | null
   timestamp?: string
   createdAt?: string
   userAvatar?: string
@@ -21,6 +31,8 @@ export interface Message {
   userName: string
   userAvatar?: string
   content: string
+  type: "TEXT" | "DOCUMENT"
+  document?: MessageDocument | null
   timestamp: Date | string
   createdAt?: string
   user?: {
@@ -43,6 +55,9 @@ export const normalizeMessage = (msg: ServerMessage): Message => {
     userName: msg.user?.name || msg.userName || "Unknown User",
     userAvatar: msg.userAvatar,
     content: msg.content,
+    type: msg.type === "DOCUMENT" ? "DOCUMENT" : "TEXT",
+    document: msg.document,
     timestamp,
+    createdAt: msg.createdAt,
   }
 }

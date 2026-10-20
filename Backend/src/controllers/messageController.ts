@@ -29,7 +29,12 @@ export const getMessage = async (req: Request, res: Response) => {
 
     const message = await prisma.message.findUnique({
       where: { id: messageId as string },
-      include: { user: { select: { id: true, name: true, email: true } } },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        document: {
+          select: { id: true, fileName: true, fileType: true, fileSize: true },
+        },
+      },
     });
 
     if (!message) {
@@ -50,7 +55,12 @@ export const getProjectMessages = async (req: Request, res: Response) => {
 
     const messages = await prisma.message.findMany({
       where: { projectId: String(projectId) },
-      include: { user: { select: { id: true, name: true } } },
+      include: {
+        user: { select: { id: true, name: true } },
+        document: {
+          select: { id: true, fileName: true, fileType: true, fileSize: true },
+        },
+      },
       orderBy: { createdAt: 'asc' },
     });
 

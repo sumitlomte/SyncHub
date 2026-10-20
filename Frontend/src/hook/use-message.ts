@@ -15,7 +15,7 @@ interface SaveMessageData {
  * Hook for managing project messages
  * Handles fetching messages and saving new messages
  */
-export default function useMessage(projectId?: string) {
+export default function useMessage(projectId: string) {
   const queryClient = useQueryClient();
 
   /**

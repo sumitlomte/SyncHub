@@ -24,6 +24,11 @@ enum TaskStatus {
   COMPLETED
 }
 
+enum MessageType {
+  TEXT
+  DOCUMENT
+}
+
 model User {
   id       String   @id @default(uuid())
   email    String   @unique
@@ -33,6 +38,7 @@ model User {
   projects Project[]
   teamMembers TeamMember[]
   messages Message[]
+  documents Document[]
 }
 
 model Project {
@@ -44,6 +50,7 @@ model Project {
   tasks       Task[]
   teamMembers TeamMember[]
   messages Message[]
+  documents Document[]
 }
 
 model TeamMember {
@@ -78,4 +85,21 @@ model Message {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt()
+  type       MessageType @default(TEXT)
+  documentId String?     @unique
+  document   Document?   @relation(fields: [documentId], references: [id], onDelete: SetNull)
+}
+
+model Document {
+  id           String   @id @default(uuid())
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  fileName     String
+  fileKey      String   @unique   // S3 object key, e.g. projects/{projectId}/{uuid}-{filename}
+  fileType     String
+  fileSize     Int
+  createdAt    DateTime @default(now())
+  message Message?
 }

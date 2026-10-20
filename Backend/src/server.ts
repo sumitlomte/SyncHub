@@ -7,6 +7,7 @@ import projectRouter from "./routes/projectRouter";
 import taskRouter from "./routes/taskRouter";
 import teamRouter from "./routes/teamRouter";
 import messageRouter from './routes/messageRouter';
+import documentRouter from './routes/documentRouter';
 import { prisma } from "./lib/prisma";
 import cors from 'cors';
 import { initSocket } from "./sockets";
@@ -72,6 +73,7 @@ app.use("/api/projects", projectRouter);
 app.use("/api/tasks", taskRouter);
 app.use("/api/teams", teamRouter);
 app.use('/api/messages', messageRouter);
+app.use('/api/documents', documentRouter);
 
 // Initialize all Socket.IO event handlers
 initSocket(io);

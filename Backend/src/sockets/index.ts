@@ -2,9 +2,12 @@ import type { Server } from "socket.io";
 import { registerProjectHandlers } from "./handlers/projectHandler";
 import { registerTypingHandlers } from "./handlers/typingHandler";
 import { registerMessageHandlers } from "./handlers/messageHandler";
+import { setIO } from "../lib/socket";
 
 // Initializes Socket.IO connection and registers all event handlers
 export const initSocket = (io: Server) => {
+  setIO(io);
+
   io.on("connection", (socket) => {
     console.log("A user connected");
 
@@ -12,6 +15,7 @@ export const initSocket = (io: Server) => {
     registerProjectHandlers(io, socket);
     registerTypingHandlers(io, socket);
     registerMessageHandlers(io, socket);
+    
     
     socket.on("error", (error) => {
       console.error("Socket error:", error);

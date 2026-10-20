@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react"
 import { Button, Avatar, CircularProgress, IconButton, Tooltip } from "@mui/material"
-import { Send, Smile, Paperclip } from "lucide-react"
+import { Send, Smile, Paperclip, FileText, Download } from "lucide-react"
 import { userStore } from "../store/Auth-store"
 import getSocket from "../Socket"
 import { useParams } from "@tanstack/react-router"
@@ -8,6 +8,7 @@ import { toastManager } from "../utils/toast"
 import { logger } from "../utils/logger"
 import { type Message, type ServerMessage, normalizeMessage } from "../utils/message"
 import useMessage from "../hook/use-message"
+import useDocument from "../hook/use-document"
 import { SocketEvents } from "../constants/socket-events"
 import { Skeleton, AvatarSkeleton } from "./ui/Skeleton"
 
@@ -16,12 +17,19 @@ interface TypingUser {
   userName: string
 }
 
+const formatFileSize = (size: number) => {
+  if (size < 1024) return `${size} B`
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`
+}
+
 export default function ProjectConversation() {
   const [socketMessages, setSocketMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState("")
   const [sending, setSending] = useState(false)
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const typingThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const currentProjectIdRef = useRef<string | undefined>(undefined)
   const { user } = userStore.get()
@@ -29,9 +37,15 @@ export default function ProjectConversation() {
   
   // Fetch messages from API
   const { messages: fetchedMessages, isLoadingMessages, messageError } = useMessage(projectId as string)
+  const { uploadDocumentMutation, getDownloadUrlMutation } = useDocument(
+    projectId ?? "",
+    user?.id ?? "",
+  )
   
   // Combine API messages with Socket.IO real-time messages
-  const allMessages = [...(fetchedMessages || []), ...socketMessages]
+  const allMessages = Array.from(
+    new Map([...(fetchedMessages || []), ...socketMessages].map((message) => [message.id, message])).values(),
+  )
 
   // Update ref without triggering re-renders
   useEffect(() => {
@@ -63,9 +77,11 @@ export default function ProjectConversation() {
             
             // Match by userId + content + timestamp within 1 second (for optimistic updates)
             return (
-              m.userId === normalizedMessage.userId &&
-              m.content === normalizedMessage.content &&
-              Math.abs(messageTime - prevMessageTime) < 1000
+              m.id === normalizedMessage.id ||
+              (m.userId === normalizedMessage.userId &&
+                m.type === normalizedMessage.type &&
+                m.content === normalizedMessage.content &&
+                Math.abs(messageTime - prevMessageTime) < 1000)
             )
           })
           
@@ -167,6 +183,7 @@ export default function ProjectConversation() {
         userId: user.id,
         userName: user.name || "You",
         content: inputValue,
+        type: "TEXT",
         timestamp: new Date(),
       }
 
@@ -227,6 +244,39 @@ export default function ProjectConversation() {
     }
   }
 
+  const handleFileSelection = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ""
+    if (!file) return
+
+    if (!user?.id || !projectId) {
+      toastManager.show("error", "Unable to upload a file right now.")
+      return
+    }
+
+    try {
+      await uploadDocumentMutation.mutateAsync(file)
+    } catch (error) {
+      logger.error(
+        "Failed to upload conversation attachment",
+        error instanceof Error ? error : new Error(String(error)),
+      )
+    }
+  }
+
+  const handleDownloadDocument = async (documentId: string) => {
+    try {
+      const { downloadUrl } = await getDownloadUrlMutation.mutateAsync({ documentId })
+      window.location.assign(downloadUrl)
+    } catch (error) {
+      logger.error(
+        "Failed to download conversation attachment",
+        error instanceof Error ? error : new Error(String(error)),
+        { documentId },
+      )
+    }
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Messages Container */}
@@ -278,6 +328,7 @@ export default function ProjectConversation() {
         ) : (
           allMessages.map((message, index) => {
             const isOwn = message.userId === user?.id
+            const document = message.document
             const isConsecutive = 
               index > 0 && allMessages[index - 1].userId === message.userId
 
@@ -329,15 +380,54 @@ export default function ProjectConversation() {
                       </p>
                     </div>
                   )}
-                  <div
-                    className={`px-4 py-2.5 rounded-2xl break-words whitespace-pre-wrap text-sm shadow-sm leading-relaxed ${
-                      isOwn
-                        ? "bg-blue-600 text-white rounded-tr-sm"
-                        : "bg-white text-gray-800 border border-gray-100 rounded-tl-sm"
-                    }`}
-                  >
-                    {message.content}
-                  </div>
+                  {message.type === "DOCUMENT" && document ? (
+                    <div
+                      className={`flex min-w-60 max-w-full items-center gap-3 rounded-2xl p-3 text-sm shadow-sm ${
+                        isOwn
+                          ? "bg-blue-600 text-white rounded-tr-sm"
+                          : "bg-white text-gray-800 border border-gray-100 rounded-tl-sm"
+                      }`}
+                    >
+                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-black/10">
+                        <FileText size={21} aria-hidden="true" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium" title={document.fileName}>
+                          {document.fileName}
+                        </p>
+                        <p className={`text-xs ${isOwn ? "text-blue-100" : "text-gray-500"}`}>
+                          {formatFileSize(document.fileSize)}
+                        </p>
+                      </div>
+                      <Tooltip title="Download file">
+                        <span>
+                          <IconButton
+                            size="small"
+                            aria-label={`Download ${document.fileName}`}
+                            disabled={getDownloadUrlMutation.isPending}
+                            onClick={() => handleDownloadDocument(document.id)}
+                            className={isOwn ? "!text-white" : "!text-gray-600"}
+                          >
+                            {getDownloadUrlMutation.isPending ? (
+                              <CircularProgress size={18} color="inherit" />
+                            ) : (
+                              <Download size={18} />
+                            )}
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </div>
+                  ) : (
+                    <div
+                      className={`px-4 py-2.5 rounded-2xl break-words whitespace-pre-wrap text-sm shadow-sm leading-relaxed ${
+                        isOwn
+                          ? "bg-blue-600 text-white rounded-tr-sm"
+                          : "bg-white text-gray-800 border border-gray-100 rounded-tl-sm"
+                      }`}
+                    >
+                      {message.content}
+                    </div>
+                  )}
                 </div>
 
                 {isOwn && !isConsecutive && (
@@ -385,9 +475,29 @@ export default function ProjectConversation() {
                 <IconButton size="small" className="!text-gray-400 hover:!text-gray-600"><Smile size={20} /></IconButton>
               </Tooltip>
               <Tooltip title="Attach file">
-                <IconButton size="small" className="!text-gray-400 hover:!text-gray-600"><Paperclip size={20} /></IconButton>
+                <IconButton
+                  size="small"
+                  aria-label="Attach file"
+                  disabled={uploadDocumentMutation.isPending}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="!text-gray-400 hover:!text-gray-600"
+                >
+                  {uploadDocumentMutation.isPending ? (
+                    <CircularProgress size={18} />
+                  ) : (
+                    <Paperclip size={20} />
+                  )}
+                </IconButton>
               </Tooltip>
             </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={handleFileSelection}
+              aria-label="Choose a file to attach"
+            />
 
             {/* Text Input */}
             <textarea

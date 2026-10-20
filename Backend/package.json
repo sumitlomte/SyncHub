@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "prettier --write .",
-    "format:watch": "onchange \"**/*.{js,ts,json}\" -- prettier --write {{changed}}",
+    "format:watch": "node scripts/format-watch.js",
     "dev": "nodemon --exec tsx src/server.ts",
     "build": "tsc",
     "build:production": "tsc --build tsconfig.prod.json",
@@ -17,6 +17,8 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1153.0",
+    "@aws-sdk/s3-request-presigner": "^3.1153.0",
     "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.8.0",
     "cors": "^2.8.6",
@@ -32,10 +34,10 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.3.5",
     "@types/pg": "^8.18.0",
-    "onchange": "^7.1.0",
+    "node-watch": "^0.7.4",
     "prettier": "^3.8.1",
     "prisma": "^7.8.0",
-    "tsx": "^4.21.0",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   }
 }
