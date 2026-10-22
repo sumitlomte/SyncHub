@@ -1,6 +1,8 @@
 import { prisma } from "../lib/prisma";
 import type { Request, Response } from 'express';
 import { generateToken } from "../utils/authHelper";
+import { toLowerCase } from "../utils/stringCase";
+import { hashPassword, comparePassword } from "../utils/passwordIncrypter";
 
 export const registerUser = async (req: Request, res: Response) => {
     const { name, email, password, role } = req.body;
@@ -8,12 +10,15 @@ export const registerUser = async (req: Request, res: Response) => {
     if (existingUser) {
         return res.status(400).json({ error: "User with this email already exists" });
     }
+
+    const hashedPassword = await hashPassword(password);
+
     try {
         const user = await prisma.user.create({
             data: {
                 name,
-                email: email.toLowerCase(),
-                password,
+                email: toLowerCase(email),
+                password: hashedPassword,
                 role
             }
         });
@@ -52,13 +57,16 @@ export const updateUser = async (req: Request<{ id: string }>, res: Response) =>
     if (!password) {
         password = existingUser?.password ;
     }
+    else {
+        password = await hashPassword(password);
+    }
     try {
         const user = await prisma.user.update({
             where: { id: String(id) },
             data: {
                 name,
-                email,
-                password,
+                email: toLowerCase(email),
+                password: password,
                 role
             }
         });
@@ -83,8 +91,12 @@ export const getAllUsers = async (req: Request, res: Response) => {
 
 export const loginUser = async (req: Request, res: Response) => {
     const { email, password } = req.body;
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user || user.email !== email || user.password !== password) {
+    const emailToLower = toLowerCase(email);
+    const user = await prisma.user.findUnique({ where: { email: emailToLower } });
+
+    const isPasswordValid = await comparePassword(password, user?.password as string);
+
+    if (!user || user.email !== emailToLower || !isPasswordValid) {
         return res.status(401).json({ error: "Invalid email or password" });
     }
     const token = generateToken(user);
