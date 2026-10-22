@@ -20,6 +20,8 @@ export interface LoginUser {
     password: string;
 }
 
+export type UserResponse = Omit<User, "email">;
+
 export interface AssignedProjects {
   id: string;
   title: string;

@@ -1,4 +1,5 @@
 import { createStore } from '@tanstack/store'
+import type { User } from "../types/user";
 
 interface UserState {
   user: { name: string; id: string; role: string } | null;
@@ -26,9 +27,10 @@ export function getUserFromLocalStorage() {
     return null;
 }
 
-export function saveUserToLocalStorage(user: { name: string; id: number, role: string }) {
+export function saveUserToLocalStorage(user: User) {
   try {
     localStorage.setItem('user', JSON.stringify(user));
+    userStore.setState((state) => ({ ...state, user }));
   } catch (error) {
     console.error('Error saving user data to localStorage:', error);
   }
@@ -37,6 +39,7 @@ export function saveUserToLocalStorage(user: { name: string; id: number, role: s
 export function clearUserFromLocalStorage() {
   try {
     localStorage.removeItem('user');
+    userStore.setState((state) => ({ ...state, user: null }));
   } catch (error) {
     console.error('Error clearing user data from localStorage:', error);
   }

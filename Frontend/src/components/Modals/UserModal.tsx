@@ -1,14 +1,7 @@
 import { Modal, Box, TextField, Button, MenuItem, FormHelperText } from "@mui/material"
 import { useEffect } from "react"
 import { useFormValidation, userFormValidator } from "../../hook/use-form-validation"
-
-type User = {
-  id?: string
-  name: string
-  email: string
-  role: "USER" | "ADMIN"
-  password?: string
-}
+import type { User } from "../../types/user"
 
 type Props = {
   open: boolean

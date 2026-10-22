@@ -37,13 +37,11 @@ export default function UserList() {
     }
   }
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-
-  const handleClick = (event :  React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget as HTMLElement);
-  };
+  const [selectedRowUser, setSelectedRowUser] = useState<User | null>(null);
 
   const handleClose = () => {
     setAnchorEl(null);
+    setSelectedRowUser(null);
   };
 
   const openPopup = Boolean(anchorEl);
@@ -87,26 +85,35 @@ export default function UserList() {
       sortable: false,
       resizable: false,
       renderCell: ({ row }) => (
-        <>
-      <IconButton size="small" onClick={handleClick}>
-        <MoreVertIcon />
-      </IconButton>
+      <>
+        <IconButton size="small" onClick={(e) =>{ e.stopPropagation(); setSelectedRowUser(row); setAnchorEl(e.currentTarget as HTMLElement); }}>
+          <MoreVertIcon />
+        </IconButton>
 
-      <Popover
-        open={openPopup}
-        anchorEl={anchorEl}
-        onClose={handleClose}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "left",
-        }}
-      >
-        <div className="flex flex-col bg-gray-900 p-2 rounded text-white text-sm gap-4 border border-gray-500">
-          <button onClick={() => {handleEdit(row); handleClose(); }} className="text-white hover:bg-blue-200 hover:text-gray-700">Edit</button>
-          <button onClick={() => {DeleteUser.mutate(row.id); handleClose(); }} className="text-white hover:bg-blue-200 hover:text-gray-700">Delete</button>
-        </div>
-      </Popover>
-    </>
+        <Popover
+          open={openPopup}
+          anchorEl={anchorEl}
+          onClose={handleClose}
+          anchorOrigin={{
+            vertical: "bottom",
+            horizontal: "left",
+          }}
+        >
+          <div className="flex flex-col bg-gray-900 p-2 rounded text-white text-sm gap-4 border border-gray-500">
+            <button 
+              onClick={() => {
+                if (selectedRowUser) {
+                 handleEdit(selectedRowUser);
+                }
+                handleClose(); }} 
+              className="text-white hover:bg-blue-200 hover:text-gray-700"
+            >
+              Edit
+            </button>
+            <button onClick={() => {DeleteUser.mutate(row.id); handleClose(); }} className="text-white hover:bg-blue-200 hover:text-gray-700">Delete</button>
+          </div>
+        </Popover>
+      </>
 
       ),
     },

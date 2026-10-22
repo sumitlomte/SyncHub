@@ -15,19 +15,17 @@ export default function useUsers() {
     queryFn: getUsers,
   });
 
-  const LoginUser = useMutation<{ user: { name: string; id: number; role: string } }, unknown, LoginUser>({
+  const LoginUser = useMutation<{ user: { name: string; id: string; role: string } }, unknown, LoginUser>({
     mutationFn: loginUser,
     onError: (error) => {
         logger.error("Login failed", error instanceof Error ? error : new Error(String(error)));
         toastManager.error("Login failed. Please check your credentials and try again.");
     },
-    onSuccess:(data: { user: { name: string; id: number; role: string } }) => {
+    onSuccess:(data: { user: { name: string; id: string; role: string } }) => {
         toastManager.success("Login successful! Welcome back.");
-        saveUserToLocalStorage(data.user as { name: string; id: number, role: string });
-        
+        saveUserToLocalStorage(data.user as User);
         // Initialize socket connection with new user credentials
-        initializeSocket();
-        
+        initializeSocket();        
         router.navigate({ to: "/projects" }); 
     }
   });       

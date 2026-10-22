@@ -51,8 +51,19 @@ export const updateUser = async (req: Request<{ id: string }>, res: Response) =>
         return res.status(400).json({ error: "User ID is required" });
     }
     const existingUser = await prisma.user.findUnique({ where: { email } });
+    const userToUpdate = await prisma.user.findUnique({ where: { id: String(id) } });
+    if (!userToUpdate) {
+        return res.status(404).json({ error: "User not found" });
+    }
+
     if ( email === existingUser?.email) {
-        return res.status(400).json({ error: "User with this email already exists" });
+        if (email !== userToUpdate.email) {
+            return res.status(400).json({ error: "User with this email already exists" });
+        }
+        else {
+            email = userToUpdate.email;
+        }
+        
     }
     if (!password) {
         password = existingUser?.password ;
@@ -61,7 +72,7 @@ export const updateUser = async (req: Request<{ id: string }>, res: Response) =>
         password = await hashPassword(password);
     }
     try {
-        const user = await prisma.user.update({
+        await prisma.user.update({
             where: { id: String(id) },
             data: {
                 name,
@@ -70,7 +81,7 @@ export const updateUser = async (req: Request<{ id: string }>, res: Response) =>
                 role
             }
         });
-        res.json(user);
+        res.status(200).json({ message: "User updated successfully"});
     } catch (error) {
         res.status(500).json({ error: "Failed to update user" });
     }
