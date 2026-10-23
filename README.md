@@ -97,7 +97,7 @@ Before getting started, make sure you have:
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/SyncHub.git
+git clone https://github.com/sumitlomte/SyncHub.git
 cd SyncHub
 ```
 
