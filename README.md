@@ -291,10 +291,10 @@ copies or substantial portions of the Software.
 
 If you have questions, suggestions, or would like to collaborate, please reach out:
 
-- GitHub: https://github.com/your-username/SyncHub
-- Email: hello@yourproject.com
-- LinkedIn: https://linkedin.com/in/your-profile
-
+- GitHub: https://github.com/sumitlomte/SyncHub
+- Email: sumitlomte348@gmail.com
+- LinkedIn: https://linkedin.com/in/sumit-lomte-79891a243
+  
 You can also open an issue in the repository for bugs or feature requests.
 
 ---
