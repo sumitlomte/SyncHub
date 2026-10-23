@@ -1,11 +1,8 @@
 import { createStore } from '@tanstack/store'
-import type { User } from "../types/user";
+import type  { UserResponse } from "../types/user";
+import { toastManager } from "../utils/toast";
 
-interface UserState {
-  user: { name: string; id: string; role: string } | null;
-}
-
-export const userStore = createStore<UserState>({
+export const userStore = createStore<{ user: UserResponse | null }>({
   user: null,
 })
 
@@ -20,19 +17,19 @@ export function getUserFromLocalStorage() {
         try {
             return JSON.parse(userData);
         } catch (error) {
-            console.error('Error parsing user data from localStorage:', error);
+            toastManager.error('Error parsing user data from localStorage :' + (error instanceof Error ? error.message : String(error)));
             return null;
         }           
     }
     return null;
 }
 
-export function saveUserToLocalStorage(user: User) {
+export function saveUserToLocalStorage(user: UserResponse) {
   try {
     localStorage.setItem('user', JSON.stringify(user));
     userStore.setState((state) => ({ ...state, user }));
   } catch (error) {
-    console.error('Error saving user data to localStorage:', error);
+    toastManager.error('Error saving user data to localStorage :' + (error instanceof Error ? error.message : String(error)));
   }
 }
 
@@ -41,6 +38,6 @@ export function clearUserFromLocalStorage() {
     localStorage.removeItem('user');
     userStore.setState((state) => ({ ...state, user: null }));
   } catch (error) {
-    console.error('Error clearing user data from localStorage:', error);
+    toastManager.error('Error clearing user data from localStorage :' + (error instanceof Error ? error.message : String(error)));
   }
 } 

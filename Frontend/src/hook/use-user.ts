@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient  } from "@tanstack/react-query";
 import { getUsers, loginUser, registerUser, updateUser, deleteUser, logoutUser, getAssignedProjects } from "../api/user-api";
-import type { User, RegisterUser, UpdateUser, LoginUser, AssignedProjects } from "../types/user";
+import type { UserResponse, User, RegisterUser, UpdateUser, LoginUser, AssignedProjects } from "../types/user";
 import { router } from "./../router"
 import { saveUserToLocalStorage, clearUserFromLocalStorage } from "../store/Auth-store";
 import { toastManager } from "../utils/toast";
@@ -15,15 +15,15 @@ export default function useUsers() {
     queryFn: getUsers,
   });
 
-  const LoginUser = useMutation<{ user: { name: string; id: string; role: string } }, unknown, LoginUser>({
+  const LoginUser = useMutation<{ user: UserResponse }, unknown, LoginUser>({
     mutationFn: loginUser,
     onError: (error) => {
         logger.error("Login failed", error instanceof Error ? error : new Error(String(error)));
         toastManager.error("Login failed. Please check your credentials and try again.");
     },
-    onSuccess:(data: { user: { name: string; id: string; role: string } }) => {
+    onSuccess:(data: { user: UserResponse }) => {
         toastManager.success("Login successful! Welcome back.");
-        saveUserToLocalStorage(data.user as User);
+        saveUserToLocalStorage(data.user);
         // Initialize socket connection with new user credentials
         initializeSocket();        
         router.navigate({ to: "/projects" }); 
