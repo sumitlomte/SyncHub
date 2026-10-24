@@ -4,6 +4,15 @@ import { generateToken } from "../utils/authHelper";
 import { toLowerCase } from "../utils/stringCase";
 import { hashPassword, comparePassword } from "../utils/passwordIncrypter";
 
+const authCookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV ? process.env.NODE_ENV === "production" : true,
+  sameSite: "lax" as const,
+  path: "/",
+};
+
+const oneDayInMs = 24 * 60 * 60 * 1000;
+
 export const registerUser = async (req: Request, res: Response) => {
     const { name, email, password, role } = req.body;
     const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -22,7 +31,7 @@ export const registerUser = async (req: Request, res: Response) => {
                 role
             }
         });
-        res.json(user);
+        res.status(201).json({ message: "User created successfully", user: { id: user.id } });
     } catch (error) {
         res.status(500).json({ error: "Failed to create user" });
     }
@@ -38,7 +47,7 @@ export const deleteUser = async (req: Request<{ id: string }>, res: Response) =>
         await prisma.user.delete({
             where: { id: String(id) }
         });
-        res.json({ message: "User deleted successfully" });
+        res.status(200).json({ message: "User deleted successfully" });
     } catch (error) {
         res.status(500).json({ error: "Failed to delete user" });
     }
@@ -102,21 +111,21 @@ export const getAllUsers = async (req: Request, res: Response) => {
 
 export const loginUser = async (req: Request, res: Response) => {
     const { email, password } = req.body;
-    const emailToLower = toLowerCase(email);
-    const user = await prisma.user.findUnique({ where: { email: emailToLower } });
+    const user = await prisma.user.findUnique({ where: { email: toLowerCase(email) } });
 
     const isPasswordValid = await comparePassword(password, user?.password as string);
 
-    if (!user || user.email !== emailToLower || !isPasswordValid) {
+    if (!user || user.email !== toLowerCase(email) || !isPasswordValid) {
         return res.status(401).json({ error: "Invalid email or password" });
     }
-    const token = generateToken(user);
-    res.cookie("token", token).json({ message: "Login successful", user: { id: user.id, name: user.name, role: user.role } });
+    const token = generateToken(user.id, user.name, user.role);
+    res.cookie("token", token, {...authCookieOptions, maxAge: oneDayInMs })
+    .json({ message: "Login successful", user: { id: user.id, name: user.name, role: user.role } });
 };
 
 export const logoutUser = (req: Request, res: Response) => {
     console.log("Logging out user");
-    res.clearCookie("token").json({ message: "Logged out successfully" });
+    res.clearCookie("token", authCookieOptions).json({ message: "Logged out successfully" });
 };
 
 export const assignedProjects = async (req: Request, res: Response) => {

@@ -5,6 +5,7 @@ import { toastManager } from "../utils/toast";
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api",
   timeout: 5000,
+  withCredentials: true, // Include cookies in requests
 });
 
 /**
@@ -41,6 +42,7 @@ export function setupAxiosInterceptors() {
         // Handle specific status codes
         if (status === 401) {
           // Unauthorized - clear local storage and redirect to login
+          toastManager.error("Session expired. Please log in again.");
           localStorage.removeItem("user");
           window.location.href = "/login";
         } else if (status === 500) {
@@ -69,9 +71,10 @@ export function setupAxiosInterceptors() {
       const userStr = localStorage.getItem("user");
       if (userStr) {
         try {
-          // If you have a token in localStorage, add it here
-          // const user = JSON.parse(userStr);
-          // config.headers.Authorization = `Bearer ${user.token}`;
+          const user = JSON.parse(userStr);
+          if (user?.token) {
+            config.headers.set("Authorization", `Bearer ${user.token}`);
+          }
         } catch (error) {
           logger.warn("Failed to parse user from localStorage", { error });
         }

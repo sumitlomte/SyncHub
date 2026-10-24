@@ -11,21 +11,31 @@ import documentRouter from './routes/documentRouter';
 import { prisma } from "./lib/prisma";
 import cors from 'cors';
 import { initSocket } from "./sockets";
+import cookieParser from 'cookie-parser';
 
 const app = express();
 const server = createServer(app);
+const frontendOrigin = process.env.FRONTEND_ORIGIN;
+
+// Initialize Socket.IO server with CORS settings
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: frontendOrigin,
     methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true
   },
   transports: ['websocket', 'polling'],
 });
 const port = 3000;
 
-// Enable CORS for all routes
-app.use(cors());
+// CORS configuration to allow requests from the frontend
+app.use(cors({
+  origin: frontendOrigin,
+  credentials: true,
+}));
 
+// Cookie parser middleware to parse cookies from incoming requests
+app.use(cookieParser());
 
 // Basic request logging (includes which API call was made + response status)
 app.use((req: Request, res: Response, next) => {
