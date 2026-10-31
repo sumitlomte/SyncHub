@@ -1,8 +1,19 @@
 import { prisma } from "../lib/prisma";
-import type { Request, Response } from 'express';
+import type { Request, Response } from "express";
 import { generateToken } from "../utils/authHelper";
 import { toLowerCase } from "../utils/stringCase";
 import { hashPassword, comparePassword } from "../utils/passwordIncrypter";
+import type { ApiErrorDTO } from "../dto/common.dto";
+import type { AssignedProjectDTO } from "../dto/project.dto";
+import type {
+    LoginUserRequestDTO,
+    LoginUserResponseDTO,
+    RegisterUserRequestDTO,
+    RegisterUserResponseDTO,
+    UpdateUserRequestDTO,
+    UserDTO,
+    UserMessageResponseDTO,
+} from "../dto/user.dto";
 
 const authCookieOptions = {
   httpOnly: true,
@@ -13,7 +24,10 @@ const authCookieOptions = {
 
 const oneDayInMs = 24 * 60 * 60 * 1000;
 
-export const registerUser = async (req: Request, res: Response) => {
+export const registerUser = async (
+    req: Request<Record<string, never>, RegisterUserResponseDTO | ApiErrorDTO, RegisterUserRequestDTO>,
+    res: Response<RegisterUserResponseDTO | ApiErrorDTO>,
+) => {
     const { name, email, password, role } = req.body;
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -37,7 +51,10 @@ export const registerUser = async (req: Request, res: Response) => {
     }
 };
 
-export const deleteUser = async (req: Request<{ id: string }>, res: Response) => {
+export const deleteUser = async (
+    req: Request<{ id: string }, UserMessageResponseDTO | ApiErrorDTO>,
+    res: Response<UserMessageResponseDTO | ApiErrorDTO>,
+) => {
     const { id } = req.params;
     if (!id) {
         return res.status(400).json({ error: "User ID is required" });
@@ -53,7 +70,10 @@ export const deleteUser = async (req: Request<{ id: string }>, res: Response) =>
     }
 };
 
-export const updateUser = async (req: Request<{ id: string }>, res: Response) => {
+export const updateUser = async (
+    req: Request<{ id: string }, UserMessageResponseDTO | ApiErrorDTO, UpdateUserRequestDTO>,
+    res: Response<UserMessageResponseDTO | ApiErrorDTO>,
+) => {
     const { id } = req.params;
     let { name, email, password, role } = req.body;
     if (!id) {
@@ -75,7 +95,7 @@ export const updateUser = async (req: Request<{ id: string }>, res: Response) =>
         
     }
     if (!password) {
-        password = existingUser?.password ;
+        password = userToUpdate.password;
     }
     else {
         password = await hashPassword(password);
@@ -96,7 +116,10 @@ export const updateUser = async (req: Request<{ id: string }>, res: Response) =>
     }
 };
 
-export const getAllUsers = async (req: Request, res: Response) => {
+export const getAllUsers = async (
+    req: Request<Record<string, never>, UserDTO[] | ApiErrorDTO>,
+    res: Response<UserDTO[] | ApiErrorDTO>,
+) => {
     try {
         const users = await prisma.user.findMany();
         const usersWithoutPassword = users.map(user => {
@@ -109,7 +132,10 @@ export const getAllUsers = async (req: Request, res: Response) => {
     }
 };
 
-export const loginUser = async (req: Request, res: Response) => {
+export const loginUser = async (
+    req: Request<Record<string, never>, LoginUserResponseDTO | ApiErrorDTO, LoginUserRequestDTO>,
+    res: Response<LoginUserResponseDTO | ApiErrorDTO>,
+) => {
     const { email, password } = req.body;
     const user = await prisma.user.findUnique({ where: { email: toLowerCase(email) } });
 
@@ -123,12 +149,18 @@ export const loginUser = async (req: Request, res: Response) => {
     .json({ message: "Login successful", user: { id: user.id, name: user.name, role: user.role } });
 };
 
-export const logoutUser = (req: Request, res: Response) => {
+export const logoutUser = (
+    req: Request<Record<string, never>, UserMessageResponseDTO>,
+    res: Response<UserMessageResponseDTO>,
+) => {
     console.log("Logging out user");
     res.clearCookie("token", authCookieOptions).json({ message: "Logged out successfully" });
 };
 
-export const assignedProjects = async (req: Request, res: Response) => {
+export const assignedProjects = async (
+    req: Request<{ id: string }, AssignedProjectDTO[] | ApiErrorDTO>,
+    res: Response<AssignedProjectDTO[] | ApiErrorDTO>,
+) => {
     const { id } = req.params;
     try {
         const projects = await prisma.project.findMany({

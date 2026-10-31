@@ -1,7 +1,18 @@
 import { prisma } from "../lib/prisma";
-import type { Request, Response } from 'express';
+import type { Request, Response } from "express";
+import type { ApiErrorDTO } from "../dto/common.dto";
+import type { CreateMessageRequestDTO, MessageDTO } from "../dto/message.dto";
 
-export const saveMessage = async (req: Request, res: Response) => {
+const toMessageDTO = <T extends { createdAt: Date; updatedAt: Date }>(message: T) => ({
+  ...message,
+  createdAt: message.createdAt.toISOString(),
+  updatedAt: message.updatedAt.toISOString(),
+});
+
+export const saveMessage = async (
+  req: Request<Record<string, never>, MessageDTO | ApiErrorDTO, CreateMessageRequestDTO>,
+  res: Response<MessageDTO | ApiErrorDTO>,
+) => {
   try {
     const { content, projectId, userId } = req.body;
 
@@ -16,19 +27,22 @@ export const saveMessage = async (req: Request, res: Response) => {
       },
     });
 
-    res.status(201).json(message);
+    res.status(201).json(toMessageDTO(message));
   } catch (error) {
     console.error('Save message error:', error);
     res.status(500).json({ error: 'Failed to save message' });
   }
 };
 
-export const getMessage = async (req: Request, res: Response) => {
+export const getMessage = async (
+  req: Request<{ messageId: string }, MessageDTO | ApiErrorDTO>,
+  res: Response<MessageDTO | ApiErrorDTO>,
+) => {
   try {
     const { messageId } = req.params;
 
     const message = await prisma.message.findUnique({
-      where: { id: messageId as string },
+      where: { id: messageId },
       include: {
         user: { select: { id: true, name: true, email: true } },
         document: {
@@ -41,14 +55,17 @@ export const getMessage = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Message not found' });
     }
 
-    res.json(message);
+    res.json(toMessageDTO(message));
   } catch (error) {
     console.error('Get message error:', error);
     res.status(500).json({ error: 'Failed to fetch message' });
   }
 };
 
-export const getProjectMessages = async (req: Request, res: Response) => {
+export const getProjectMessages = async (
+  req: Request<{ projectId: string }, MessageDTO[] | ApiErrorDTO>,
+  res: Response<MessageDTO[] | ApiErrorDTO>,
+) => {
   try {
     const { projectId } = req.params;
     console.log('Fetching messages for projectId:', projectId);
@@ -64,7 +81,7 @@ export const getProjectMessages = async (req: Request, res: Response) => {
       orderBy: { createdAt: 'asc' },
     });
 
-    res.json(messages);
+    res.json(messages.map(toMessageDTO));
   } catch (error) {
     console.error('Get project messages error:', error);
     res.status(500).json({ error: 'Failed to fetch messages', details: String(error) });

@@ -14,7 +14,7 @@ type UserFormValues = Omit<User, "id"> & { id?: string }
 
 export default function UserList() {
 
-  const { GetAllUsers, RegisterUser, UpdateUser, DeleteUser } = useUsers()
+  const { GetAllUsers, RegisterUser, UpdateUser, DeleteUser } = useUsers({ fetchAllUsers: true })
   const { data: users = [], isLoading } = GetAllUsers
   const [open, setOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)

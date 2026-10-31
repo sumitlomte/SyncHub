@@ -27,7 +27,7 @@ type Props = {
 
 export default function TaskModal({ open, onClose, onSubmit, onDelete, task, isLoading = false }: Props) {
 
-  const { GetAllUsers } = useUsers()
+  const { GetAllUsers } = useUsers({ fetchAllUsers: true })
   const { data: users } = GetAllUsers
 
   const { values, errors, touched, isSubmitting, handleChange, handleBlur, handleSubmit, setValues } = useFormValidation({

@@ -62,7 +62,7 @@ export default function ProjectDetails() {
   const { data: project, isLoading, error } = GetProject
 
   // Fetch all users
-  const { GetAllUsers } = useUsers()
+  const { GetAllUsers } = useUsers({ fetchAllUsers: true })
   const { data: allUsers = [], isLoading: isLoadingUsers } = GetAllUsers
 
   if (!projectId) {

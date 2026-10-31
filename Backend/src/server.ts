@@ -12,6 +12,7 @@ import { prisma } from "./lib/prisma";
 import cors from 'cors';
 import { initSocket } from "./sockets";
 import cookieParser from 'cookie-parser';
+import type { HealthResponseDTO } from "./dto/common.dto";
 
 const app = express();
 const server = createServer(app);
@@ -54,7 +55,7 @@ app.use((req: Request, res: Response, next) => {
 app.use(express.json());
 
 // Health check endpoint that reports DB connectivity and the API call
-app.get('/api/health', async (req: Request, res: Response) => {
+app.get('/api/health', async (req: Request, res: Response<HealthResponseDTO>) => {
   const apiCall = `${req.method} ${req.originalUrl}`;
   try {
     await prisma.$connect();

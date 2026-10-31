@@ -5,9 +5,27 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { s3, BUCKET } from "../lib/s3";
 import { prisma } from "../lib/prisma";
 import { getIO } from "../lib/socket";
+import type { ApiErrorDTO } from "../dto/common.dto";
+import type {
+  ConfirmUploadRequestDTO,
+  CreateUploadUrlRequestDTO,
+  DocumentDTO,
+  DocumentWithUploaderDTO,
+  DownloadUrlResponseDTO,
+  UploadUrlResponseDTO,
+} from "../dto/document.dto";
+import type { MessageDTO } from "../dto/message.dto";
+
+const toDocumentDTO = <T extends { createdAt: Date }>(document: T) => ({
+  ...document,
+  createdAt: document.createdAt.toISOString(),
+});
 
 // Step 1: client asks for a presigned upload URL
-export const getUploadUrl = async (req: Request, res: Response) => {
+export const getUploadUrl = async (
+  req: Request<{ projectId: string; userId: string }, UploadUrlResponseDTO | ApiErrorDTO, CreateUploadUrlRequestDTO>,
+  res: Response<UploadUrlResponseDTO | ApiErrorDTO>,
+) => {
   const { projectId, userId } = req.params;
   const { fileName, fileType } = req.body;
 
@@ -32,7 +50,10 @@ export const getUploadUrl = async (req: Request, res: Response) => {
 };
 
 // Step 2: client confirms after successful S3 upload, we save metadata
-export const confirmUpload = async (req: Request, res: Response) => {
+export const confirmUpload = async (
+  req: Request<{ projectId: string; userId: string }, DocumentDTO | ApiErrorDTO, ConfirmUploadRequestDTO>,
+  res: Response<DocumentDTO | ApiErrorDTO>,
+) => {
   const { projectId, userId } = req.params;
   const { fileName, fileKey, fileType, fileSize } = req.body;
 
@@ -79,16 +100,25 @@ export const confirmUpload = async (req: Request, res: Response) => {
     return { doc, message };
   });
 
+  const messageDTO: MessageDTO = {
+    ...message,
+    createdAt: message.createdAt.toISOString(),
+    updatedAt: message.updatedAt.toISOString(),
+  };
+
   try {
-    getIO().to(projectId).emit("message-from-server", message);
+    getIO().to(projectId).emit("message-from-server", messageDTO);
   } catch (error) {
     console.error("Document saved, but chat broadcast failed:", error);
   }
 
-  res.status(201).json(doc);
+  res.status(201).json(toDocumentDTO(doc));
 };
 
-export const listDocuments = async (req: Request, res: Response) => {
+export const listDocuments = async (
+  req: Request<{ projectId: string; userId: string }, DocumentWithUploaderDTO[] | ApiErrorDTO>,
+  res: Response<DocumentWithUploaderDTO[] | ApiErrorDTO>,
+) => {
   const { projectId, userId } = req.params;
 
   if (typeof projectId !== "string" || typeof userId !== "string") {
@@ -103,10 +133,13 @@ export const listDocuments = async (req: Request, res: Response) => {
     include: { uploadedBy: { select: { id: true, name: true } } },
     orderBy: { createdAt: "desc" },
   });
-  res.json(docs);
+  res.json(docs.map(toDocumentDTO));
 };
 
-export const getDownloadUrl = async (req: Request, res: Response) => {
+export const getDownloadUrl = async (
+  req: Request<{ documentId: string; userId: string }, DownloadUrlResponseDTO | ApiErrorDTO>,
+  res: Response<DownloadUrlResponseDTO | ApiErrorDTO>,
+) => {
   const { documentId, userId } = req.params;
 
   if (typeof documentId !== "string" || typeof userId !== "string") {
@@ -129,7 +162,10 @@ export const getDownloadUrl = async (req: Request, res: Response) => {
   res.json({ downloadUrl });
 };
 
-export const deleteDocument = async (req: Request, res: Response) => {
+export const deleteDocument = async (
+  req: Request<{ documentId: string; userId: string }, ApiErrorDTO>,
+  res: Response<ApiErrorDTO>,
+) => {
   const { documentId, userId } = req.params;
 
   if (typeof documentId !== "string" || typeof userId !== "string") {

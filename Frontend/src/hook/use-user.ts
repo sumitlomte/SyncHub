@@ -7,12 +7,13 @@ import { toastManager } from "../utils/toast";
 import { logger } from "../utils/logger";
 import { initializeSocket, disconnectSocket } from "../Socket";
 
-export default function useUsers() {
+export default function useUsers({ fetchAllUsers = false }: { fetchAllUsers?: boolean } = {}) {
   const queryClient = useQueryClient()
 
   const GetAllUsers = useQuery<User[]>({
     queryKey: ["users"],
     queryFn: getUsers,
+    enabled: fetchAllUsers,
   });
 
   const LoginUser = useMutation<{ user: UserResponse }, unknown, LoginUser>({

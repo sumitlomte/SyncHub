@@ -1,7 +1,18 @@
 import { prisma } from "../lib/prisma";
-import type { Request, Response } from 'express';
+import type { Request, Response } from "express";
+import type { ApiErrorDTO } from "../dto/common.dto";
+import type {
+  CreateProjectRequestDTO,
+  ProjectDTO,
+  ProjectDetailDTO,
+  ProjectListItemDTO,
+  UpdateProjectRequestDTO,
+} from "../dto/project.dto";
 
-export const createProject = async (req: Request, res: Response) => {
+export const createProject = async (
+  req: Request<Record<string, never>, ProjectDTO | ApiErrorDTO, CreateProjectRequestDTO>,
+  res: Response<ProjectDTO | ApiErrorDTO>,
+) => {
   try {
     const { title, description, userId } = req.body;
     const project = await prisma.project.create({
@@ -15,14 +26,17 @@ export const createProject = async (req: Request, res: Response) => {
           },
         },
       },
-    });
+    })
     res.status(201).json(project);
   } catch (error) {
     res.status(500).json({ error: 'Failed to create project' });
   }
 };
 
-export const getProjects = async (req: Request, res: Response) => {
+export const getProjects = async (
+  req: Request<{ userId: string }, ProjectDTO[] | ApiErrorDTO>,
+  res: Response<ProjectDTO[] | ApiErrorDTO>,
+) => {
   try {
     const { userId } = req.params;
     const projects = await prisma.project.findMany({
@@ -34,16 +48,25 @@ export const getProjects = async (req: Request, res: Response) => {
   }
 };
 
-export const getProjectById = async (req: Request, res: Response) => {
+export const getProjectById = async (
+  req: Request<{ id: string }, ProjectDetailDTO | ApiErrorDTO>,
+  res: Response<ProjectDetailDTO | ApiErrorDTO>,
+) => {
   try {
     const { id } = req.params;
     const projectWithTeamMembers = await prisma.project.findUnique({
       where: { id: String(id) },
-      include: {teamMembers: {
-        include: {
-          user: true,
+      select: {
+        id: true,
+        title: true,
+        teamMembers: {
+          select: {
+            user: {
+              select: { id: true, name: true, email: true, role: true },
+            },
+          },
         },
-      },},
+      },
     });
     const project = projectWithTeamMembers ? {
       id: projectWithTeamMembers.id,
@@ -66,7 +89,10 @@ export const getProjectById = async (req: Request, res: Response) => {
   }
 };
 
-export const updateProject = async (req: Request, res: Response) => {
+export const updateProject = async (
+  req: Request<{ id: string }, ProjectDTO | ApiErrorDTO, UpdateProjectRequestDTO>,
+  res: Response<ProjectDTO | ApiErrorDTO>,
+) => {
     try {   
     const { id } = req.params;
     const { title, description } = req.body;
@@ -80,7 +106,10 @@ export const updateProject = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteProject = async (req: Request, res: Response) => {
+export const deleteProject = async (
+  req: Request<{ id: string }, ApiErrorDTO>,
+  res: Response<ApiErrorDTO>,
+) => {
     try {
     const { id } = req.params;
     // Delete associated team members first (foreign key constraint)
@@ -97,7 +126,10 @@ export const deleteProject = async (req: Request, res: Response) => {
   } 
 };
 
-export const getProjectsList = async (req: Request, res: Response) => {
+export const getProjectsList = async (
+  req: Request<{ userId: string }, ProjectListItemDTO[] | ApiErrorDTO>,
+  res: Response<ProjectListItemDTO[] | ApiErrorDTO>,
+) => {
   try {
     const { userId } = req.params;
     if (!userId) {
@@ -119,11 +151,7 @@ export const getProjectsList = async (req: Request, res: Response) => {
           },
         },
       },
-    }) as Array<{
-      id: string;
-      title: string;
-      teamMembers: { user: { id: string; name: string } }[];
-    }>;
+    });
 
     // Map the Prisma nested result to the exact format you requested
     const projectsWithMembers = projects.map(project => ({
