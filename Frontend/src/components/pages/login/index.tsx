@@ -1,28 +1,54 @@
 import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Moon, Sun } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import useUsers from "../../../hook/use-user";
+import {
+  loginSchema,
+  type LoginFormValues,
+} from "../../../schemas/auth.schema";
+import { useTheme } from "../../../hooks/useTheme";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const { LoginUser } = useUsers();
+  const { mode, toggleMode } = useTheme();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    LoginUser.mutate({ email, password });
-    
-    setEmail("");
-    setPassword("");
+  const submitForm = (values: LoginFormValues) => {
+    LoginUser.mutate(values, { onSuccess: () => reset() });
   };
-      
+
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-r from-blue-100 to-blue-300">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8">
-        <h1 className="text-2xl font-bold text-center text-gray-800 mb-6">
+    <div className="login-page relative flex min-h-dvh items-center justify-center px-4 py-8">
+      <button
+        type="button"
+        onClick={toggleMode}
+        aria-label={
+          mode === "dark" ? "Switch to light mode" : "Switch to dark mode"
+        }
+        className="app-icon-button absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full shadow-sm"
+      >
+        {mode === "dark" ? <Sun size={19} /> : <Moon size={19} />}
+      </button>
+      {/* The card shadow adds lift in light mode; its border defines the surface in dark mode. */}
+      <div className="login-card w-full max-w-md rounded-2xl p-6 shadow-xl dark:shadow-none sm:p-8">
+        <h1 className="mb-6 text-center text-2xl font-bold text-gray-800">
           Welcome Back 👋
         </h1>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form
+          onSubmit={handleSubmit(submitForm)}
+          className="space-y-6"
+          noValidate
+        >
           <div>
             <label
               htmlFor="email"
@@ -34,11 +60,17 @@ export default function LoginPage() {
               type="email"
               id="email"
               placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
+              autoComplete="email"
+              aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? "email-error" : undefined}
+              className="app-input w-full px-3 py-2 shadow-sm"
+              {...register("email")}
             />
+            {errors.email && (
+              <p id="email-error" className="mt-1 text-sm text-red-600">
+                {errors.email.message}
+              </p>
+            )}
           </div>
           <div>
             <label
@@ -52,37 +84,40 @@ export default function LoginPage() {
                 type={showPassword ? "text" : "password"}
                 id="password"
                 placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                required
+                autoComplete="current-password"
+                aria-invalid={!!errors.password}
+                aria-describedby={
+                  errors.password ? "password-error" : undefined
+                }
+                className="app-input w-full px-3 py-2 pr-12 shadow-sm"
+                {...register("password")}
               />
-              {password && (
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? (
-                    <EyeOff size={20} />
-                  ) : (
-                    <Eye size={20} />
-                  )}
-                </button>
+              {errors.password && (
+                <p id="password-error" className="mt-1 text-sm text-red-600">
+                  {errors.password.message}
+                </p>
               )}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="app-icon-button absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
             </div>
           </div>
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition duration-200"
+            disabled={LoginUser.isPending}
+            className="app-button-primary w-full"
           >
-            Login
+            {LoginUser.isPending ? "Signing in..." : "Login"}
           </button>
         </form>
         <p className="mt-6 text-center text-sm text-gray-600">
           Don’t have an account?{" "}
-          <a href="#" className="text-blue-600 hover:underline">
+          <a href="#" className="app-link">
             Sign up
           </a>
         </p>

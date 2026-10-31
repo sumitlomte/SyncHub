@@ -7,7 +7,7 @@ export interface User {
   role: Role;
 }
 
-export interface RegisterUser extends User {
+export interface RegisterUser extends Omit<User, "id"> {
   password: string;
 }
 

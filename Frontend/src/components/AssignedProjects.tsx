@@ -4,14 +4,16 @@ import type { AssignedProjects } from "../types/user";
 import { CardSkeleton } from "./ui/Skeleton";
 
 export default function AssignedProjects() {
-
   const { userId } = useParams({ strict: false });
   const { GetAssignedProjects } = useUsers();
-  const { data: AssignedProjects = [], isLoading, error } = GetAssignedProjects(userId);
+  const {
+    data: AssignedProjects = [],
+    isLoading,
+    error,
+  } = GetAssignedProjects(userId);
 
   return (
-    <div className="w-full p-6">
-
+    <div className="w-full min-w-0 p-3 sm:p-6">
       {!userId ? (
         <div className="flex flex-col items-center justify-center h-[70vh] text-gray-500">
           <h2 className="text-2xl font-semibold mb-2">No User Selected</h2>
@@ -19,9 +21,8 @@ export default function AssignedProjects() {
         </div>
       ) : (
         <div>
-
           {/* Header */}
-          <h2 className="text-2xl font-semibold mb-6 text-gray-800">
+          <h2 className="mb-6 text-xl font-semibold text-gray-800 sm:text-2xl">
             Assigned Projects
           </h2>
 
@@ -29,8 +30,13 @@ export default function AssignedProjects() {
           {error ? (
             <div className="flex items-center justify-center h-60 bg-red-50 border border-red-200 rounded-lg p-6">
               <div className="text-center">
-                <h3 className="text-lg font-semibold text-red-800 mb-2">Unable to Load Projects</h3>
-                <p className="text-sm text-red-600">Failed to fetch assigned projects. Please try refreshing the page.</p>
+                <h3 className="text-lg font-semibold text-red-800 mb-2">
+                  Unable to Load Projects
+                </h3>
+                <p className="text-sm text-red-600">
+                  Failed to fetch assigned projects. Please try refreshing the
+                  page.
+                </p>
               </div>
             </div>
           ) : isLoading ? (
@@ -42,50 +48,51 @@ export default function AssignedProjects() {
               No projects assigned to this user.
             </div>
           ) : (
-
             /* Project Grid */
-        <div className="w-full">
-
-            <div className="w-full h-[80vh] flex flex-col gap-4 overflow-y-auto">
+            <div className="w-full">
+              <div className="w-full max-h-[calc(100dvh-9rem)] flex flex-col gap-4 overflow-y-auto md:max-h-[80vh]">
                 {AssignedProjects.map((project) => (
-                    <div
+                  <div
                     key={project.id}
-                    className="bg-white border rounded-xl p-5 shadow-sm hover:shadow-md transition w-full"
-                    >
-                    <h3 className="text-lg font-semibold">{project.title}</h3>
+                    className="app-surface app-surface--interactive w-full rounded-xl p-4 sm:p-5"
+                  >
+                    <h3 className="break-words text-lg font-semibold">
+                      {project.title}
+                    </h3>
 
                     <p className="text-sm text-gray-500 mt-1 mb-4">
-                        {project.description}
+                      {project.description}
                     </p>
 
-                    <div className="grid grid-cols-4 gap-3 w-full text-center">
-
-                        <div className="bg-gray-100 rounded-lg p-2">
+                    <div className="grid w-full grid-cols-2 gap-3 text-center sm:grid-cols-4">
+                      <div className="bg-gray-100 rounded-lg p-2">
                         <p className="text-xs text-gray-500">Total</p>
                         <p className="font-semibold">{project.totalTasks}</p>
-                        </div>
+                      </div>
 
-                        <div className="bg-yellow-100 rounded-lg p-2">
+                      <div className="bg-yellow-100 rounded-lg p-2">
                         <p className="text-xs text-yellow-700">Todo</p>
                         <p className="font-semibold">{project.todoTasks}</p>
-                        </div>
+                      </div>
 
-                        <div className="bg-blue-100 rounded-lg p-2">
+                      <div className="bg-blue-100 rounded-lg p-2">
                         <p className="text-xs text-blue-700">Progress</p>
-                        <p className="font-semibold">{project.inProgressTasks}</p>
-                        </div>
+                        <p className="font-semibold">
+                          {project.inProgressTasks}
+                        </p>
+                      </div>
 
-                        <div className="bg-green-100 rounded-lg p-2">
+                      <div className="bg-green-100 rounded-lg p-2">
                         <p className="text-xs text-green-700">Done</p>
-                        <p className="font-semibold">{project.completedTasks}</p>
-                        </div>
-
+                        <p className="font-semibold">
+                          {project.completedTasks}
+                        </p>
+                      </div>
                     </div>
-                    </div>
+                  </div>
                 ))}
+              </div>
             </div>
-
-        </div>
           )}
         </div>
       )}

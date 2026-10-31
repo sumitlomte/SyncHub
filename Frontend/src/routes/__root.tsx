@@ -1,52 +1,40 @@
-import { createRootRoute, Outlet, useLocation } from "@tanstack/react-router"
-import SideNav from "../components/SideNav"
+import { createRootRoute, Outlet, useLocation } from "@tanstack/react-router";
+import SideNav from "../components/SideNav";
+import { ThemeProvider } from "../providers/ThemeProvider";
 
 export const Route = createRootRoute({
   component: RootLayout,
   notFoundComponent: NotFound,
-})
+});
 
 function NotFound() {
   return (
-    <div style={{ padding: "2rem", textAlign: "center" }}>
-      <h1 style={{ fontSize: "1.5rem", fontWeight: 600 }}>404 – Page Not Found</h1>
-      <p style={{ color: "#64748b" }}>
-        The page you're looking for doesn't exist.
-      </p>
-    </div>
-  )
+    <main className="not-found-page">
+      <h1>404 – Page Not Found</h1>
+      <p>The page you're looking for doesn't exist.</p>
+    </main>
+  );
 }
 
 function RootLayout() {
-  const location = useLocation()
-  const isLoginPage = location.pathname === "/login" || location.pathname === "/login/"
+  const location = useLocation();
+  const isLoginPage =
+    location.pathname === "/login" || location.pathname === "/login/";
 
   return (
-    <div style={{ display: "flex" }}>
-      <style>
-        {`
-          /* Global Scrollbar styling - Hidden by default, visible on hover */
-          ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+    <ThemeProvider>
+      <div className="min-h-dvh md:flex">
+        {!isLoginPage && <SideNav />}
+        <main
+          className={
+            isLoginPage
+              ? "min-h-dvh min-w-0 flex-1"
+              : "h-dvh min-h-dvh min-w-0 flex-1 pt-14 pb-16 md:min-h-0 md:pt-0 md:pb-0"
           }
-          ::-webkit-scrollbar-track {
-            background: transparent;
-          }
-          ::-webkit-scrollbar-thumb {
-            background: transparent;
-            border-radius: 9999px;
-          }
-          *:hover::-webkit-scrollbar-thumb {
-            background: #cbd5e1; /* tailwind slate-300 */
-          }
-        `}
-      </style>
-      {!isLoginPage && <SideNav />}
-
-      <div style={{ flex: 1 }}>
-        <Outlet />
+        >
+          <Outlet />
+        </main>
       </div>
-    </div>
-  )
+    </ThemeProvider>
+  );
 }

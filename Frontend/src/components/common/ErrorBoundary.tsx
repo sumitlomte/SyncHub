@@ -41,7 +41,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
       error,
       {
         componentStack: errorInfo.componentStack,
-      }
+      },
     );
 
     // Update state with error details
@@ -64,67 +64,25 @@ export class ErrorBoundary extends React.Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            minHeight: "100vh",
-            backgroundColor: "#f8f9fa",
-            padding: "2rem",
-          }}
-        >
-          <div
-            style={{
-              maxWidth: "600px",
-              padding: "2rem",
-              backgroundColor: "white",
-              borderRadius: "8px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              border: "1px solid #fee2e2",
-            }}
+        <main className="error-boundary-page">
+          <section
+            className="error-boundary-card"
+            aria-labelledby="error-title"
           >
-            <div style={{ marginBottom: "1rem" }}>
-              <h1
-                style={{
-                  fontSize: "1.5rem",
-                  fontWeight: 600,
-                  color: "#dc2626",
-                  margin: "0 0 0.5rem 0",
-                }}
-              >
+            <div>
+              <h1 id="error-title" className="error-boundary-title">
                 ⚠️ Oops! Something went wrong
               </h1>
-              <p style={{ color: "#6b7280", margin: 0, marginBottom: "1rem" }}>
-                We encountered an unexpected error. Please try refreshing the page or
-                contact support if the problem persists.
+              <p className="error-boundary-description">
+                We encountered an unexpected error. Please try refreshing the
+                page or contact support if the problem persists.
               </p>
             </div>
 
             {import.meta.env.DEV && this.state.error && (
-              <details
-                style={{
-                  marginBottom: "1.5rem",
-                  padding: "1rem",
-                  backgroundColor: "#f3f4f6",
-                  borderRadius: "4px",
-                  border: "1px solid #e5e7eb",
-                }}
-              >
-                <summary style={{ cursor: "pointer", fontWeight: 500, marginBottom: "0.5rem" }}>
-                  Error Details (Dev Only)
-                </summary>
-                <pre
-                  style={{
-                    margin: "0.5rem 0 0 0",
-                    overflow: "auto",
-                    fontSize: "0.75rem",
-                    padding: "0.5rem",
-                    backgroundColor: "#fff",
-                    borderRadius: "4px",
-                    color: "#374151",
-                  }}
-                >
+              <details className="error-boundary-details">
+                <summary>Error Details (Dev Only)</summary>
+                <pre>
                   {this.state.error.toString()}
                   {"\n\n"}
                   {this.state.errorInfo?.componentStack}
@@ -132,45 +90,16 @@ export class ErrorBoundary extends React.Component<Props, State> {
               </details>
             )}
 
-            <div
-              style={{
-                display: "flex",
-                gap: "1rem",
-                justifyContent: "flex-end",
-              }}
-            >
-              <button
-                onClick={() => window.location.href = "/"}
-                style={{
-                  padding: "0.5rem 1rem",
-                  backgroundColor: "#f3f4f6",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontSize: "0.9rem",
-                  fontWeight: 500,
-                }}
-              >
+            <div className="error-boundary-actions">
+              <button type="button" onClick={() => window.location.assign("/")}>
                 Go Home
               </button>
-              <button
-                onClick={this.handleReset}
-                style={{
-                  padding: "0.5rem 1rem",
-                  backgroundColor: "#dc2626",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontSize: "0.9rem",
-                  fontWeight: 500,
-                }}
-              >
+              <button type="button" onClick={this.handleReset}>
                 Try Again
               </button>
             </div>
-          </div>
-        </div>
+          </section>
+        </main>
       );
     }
 

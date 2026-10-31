@@ -1,12 +1,12 @@
-import { Outlet, useParams } from "@tanstack/react-router"
-import ProjectsList from "../../ProjectList"
+import { Outlet, useParams } from "@tanstack/react-router";
+import ProjectsList from "../../ProjectList";
 
 export default function Projects() {
-  const { projectId } = useParams({ strict: false })
-  const hasSelection = Boolean(projectId)
+  const { projectId } = useParams({ strict: false });
+  const hasSelection = Boolean(projectId);
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-full min-h-0">
       {/* Project list: full width on mobile, hidden on mobile when a project is open, always visible on desktop */}
       <div
         className={`${
@@ -33,5 +33,5 @@ export default function Projects() {
         )}
       </div>
     </div>
-  )
+  );
 }

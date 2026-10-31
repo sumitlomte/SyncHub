@@ -1,108 +1,123 @@
-import { Modal, Box, TextField, Button, FormHelperText } from "@mui/material"
-import { useEffect } from "react"
-import { useFormValidation, projectFormValidator } from "../../hook/use-form-validation"
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
+} from "@mui/material";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  projectFormSchema,
+  type ProjectFormValues,
+} from "../../schemas/project.schema";
 
-export type ProjectFormData = {
-  id?: string
-  title: string
-  description: string
-  userId?: string
-}
-
-type Project = ProjectFormData
+export type ProjectFormData = ProjectFormValues;
 
 type Props = {
-  open: boolean
-  onClose: () => void
-  onSubmit: (formData: Project) => void
-  project?: Project | null
-}
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (formData: ProjectFormData) => void;
+  project?: ProjectFormData | null;
+};
 
-export default function ProjectModal({ open, onClose, onSubmit, project }: Props) {
+const emptyValues: ProjectFormData = {
+  title: "",
+  description: "",
+};
 
-  const { values, errors, touched, isSubmitting, handleChange, handleBlur, handleSubmit, setValues } = useFormValidation({
-    initialValues: {
-      title: "",
-      description: "",
-    },
-    validate: projectFormValidator,
-    onSubmit: (data) => {
-      onSubmit(data as Project)
-      onClose()
-    },
-  })
+export default function ProjectModal({
+  open,
+  onClose,
+  onSubmit,
+  project,
+}: Props) {
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ProjectFormData>({
+    resolver: zodResolver(projectFormSchema),
+    defaultValues: emptyValues,
+  });
 
   useEffect(() => {
-    if (project) {
-      setValues({
-        id: project.id,
-        title: project.title,
-        description: project.description,
-        userId: project.userId,
-      })
-    } else {
-      setValues({
-        title: "",
-        description: "",
-      })
-    }
-  }, [project, setValues])
+    if (!open) return;
+    reset(project ?? emptyValues);
+  }, [open, project, reset]);
+
+  const submitForm = (values: ProjectFormData) => {
+    onSubmit(values);
+    onClose();
+  };
 
   return (
-    <Modal open={open} onClose={onClose}>
-      <Box className="absolute top-1/2 left-1/2 w-[400px] -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl p-6 shadow-lg">
-
-        <h2 className="text-lg font-semibold mb-4">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="sm"
+      className="app-dialog app-dialog--compact"
+      aria-labelledby="project-dialog-title"
+    >
+      <form onSubmit={handleSubmit(submitForm)} noValidate>
+        <DialogTitle id="project-dialog-title">
           {project ? "Edit Project" : "Create Project"}
-        </h2>
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-
-          <div>
+          <p className="app-dialog__subtitle">
+            {project
+              ? "Update the project details."
+              : "Set up a project for your team."}
+          </p>
+        </DialogTitle>
+        <DialogContent>
+          <div className="app-dialog__form">
             <TextField
               label="Project Title"
-              name="title"
-              value={values.title}
-              onChange={handleChange}
-              onBlur={handleBlur}
               fullWidth
-              error={!!(touched.title && errors.title)}
+              className="app-dialog__field"
+              error={!!errors.title}
+              helperText={errors.title?.message}
+              {...register("title")}
             />
-            {touched.title && errors.title && (
-              <FormHelperText error>{errors.title}</FormHelperText>
-            )}
-          </div>
 
-          <div>
             <TextField
               label="Description"
-              name="description"
-              value={values.description}
-              onChange={handleChange}
-              onBlur={handleBlur}
               fullWidth
+              className="app-dialog__field"
               multiline
               rows={4}
-              error={!!(touched.description && errors.description)}
+              error={!!errors.description}
+              helperText={errors.description?.message}
+              {...register("description")}
             />
-            {touched.description && errors.description && (
-              <FormHelperText error>{errors.description}</FormHelperText>
-            )}
           </div>
-
-          <div className="flex justify-end gap-3 mt-2">
-            <Button variant="outlined" onClick={onClose} disabled={isSubmitting}>
-              Cancel
-            </Button>
-
-            <Button variant="contained" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : project ? "Update" : "Create"}
-            </Button>
-          </div>
-
-        </form>
-
-      </Box>
-    </Modal>
-  )
+        </DialogContent>
+        <DialogActions className="app-dialog__actions">
+          <Button
+            variant="outlined"
+            className="app-button-secondary"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            className="app-button-primary"
+            type="submit"
+            disabled={isSubmitting}
+          >
+            {isSubmitting
+              ? "Saving..."
+              : project
+                ? "Update project"
+                : "Create project"}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  );
 }

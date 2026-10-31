@@ -1,224 +1,227 @@
-import { Modal, Box, TextField, Button, MenuItem, CircularProgress, FormHelperText } from "@mui/material"
-import { useEffect } from "react"
-import type { Task } from "../../types/task"
-import useUsers from "../../hook/use-user"
-import { useFormValidation } from "../../hook/use-form-validation"
+import {
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  MenuItem,
+  TextField,
+} from "@mui/material";
+import { useEffect } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { Task } from "../../types/task";
+import useUsers from "../../hook/use-user";
+import { taskFormSchema, type TaskFormValues } from "../../schemas/task.schema";
 
-type TaskFormData = {
-  id?: string
-  title: string
-  description: string
-  projectId?: string
-  status: "TODO" | "IN_PROGRESS" | "COMPLETED"
-  dueDate?: Date | string
-  assignedTo?: string
-  assignee?: string
-  assignedUserId?: string
-}
+export type TaskFormData = TaskFormValues;
 
 type Props = {
-  open: boolean
-  onClose: () => void
-  onSubmit: (data: TaskFormData) => void
-  onDelete?: (id: string) => void
-  task?: Task | null
-  isLoading?: boolean
-}
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (data: TaskFormData) => void;
+  onDelete?: (id: string) => void;
+  task?: Task | null;
+  isLoading?: boolean;
+};
 
-export default function TaskModal({ open, onClose, onSubmit, onDelete, task, isLoading = false }: Props) {
+const emptyValues: TaskFormData = {
+  title: "",
+  description: "",
+  status: "TODO",
+  dueDate: "",
+  assignedTo: "",
+  projectId: "",
+};
 
-  const { GetAllUsers } = useUsers({ fetchAllUsers: true })
-  const { data: users } = GetAllUsers
+export default function TaskModal({
+  open,
+  onClose,
+  onSubmit,
+  onDelete,
+  task,
+  isLoading = false,
+}: Props) {
+  const { GetAllUsers } = useUsers({ fetchAllUsers: true });
+  const { data: users } = GetAllUsers;
 
-  const { values, errors, touched, isSubmitting, handleChange, handleBlur, handleSubmit, setValues } = useFormValidation({
-    initialValues: {
-      title: "",
-      description: "",
-      status: "TODO",
-      dueDate: "",
-      assignedTo: "",
-      projectId: "",
-    },
-    validate: (formValues) => {
-      // Custom validation for task
-      const errors: Record<string, string> = {}
-      
-      if (!formValues.title || typeof formValues.title !== "string" || !formValues.title.trim()) {
-        errors.title = "Title is required"
-      }
-      
-      if (formValues.description && typeof formValues.description === "string" && formValues.description.length > 500) {
-        errors.description = "Description must be less than 500 characters"
-      }
-      
-      return errors
-    },
-    onSubmit: (data) => {
-      onSubmit(data as TaskFormData)
-      onClose()
-    },
-  })
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<TaskFormData>({
+    resolver: zodResolver(taskFormSchema),
+    defaultValues: emptyValues,
+  });
 
   useEffect(() => {
-    if (task) {
-      setValues({
-        id: task.id,
-        title: task.title,
-        description: task.description,
-        status: task.status,
-        dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : "",
-        assignedTo: task.assignedUserId || (task.assignedTo === "Unassigned" ? "" : task.assignedTo) || "",
-        projectId: task.projectId,
-        assignee: task.assignee,
-      })
-    } else {
-      setValues({
-        title: "",
-        description: "",
-        status: "TODO",
-        dueDate: "",
-        assignedTo: "",
-        projectId: "",
-      })
-    }
-  }, [task, setValues])
+    if (!open) return;
+
+    reset(
+      task
+        ? {
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            status: task.status,
+            dueDate: task.dueDate
+              ? new Date(task.dueDate).toISOString().split("T")[0]
+              : "",
+            assignedTo:
+              task.assignedUserId ||
+              (task.assignedTo === "Unassigned" ? "" : task.assignedTo) ||
+              "",
+            projectId: task.projectId,
+            assignee: task.assignee,
+          }
+        : emptyValues,
+    );
+  }, [open, reset, task]);
+
+  const submitForm = (values: TaskFormData) => {
+    onSubmit(values);
+    onClose();
+  };
+
+  const submitting = isLoading || isSubmitting;
 
   return (
-    <Modal open={open} onClose={onClose}>
-      <Box className="absolute top-1/2 left-1/2 w-[500px] -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl p-5 shadow-lg max-h-[90vh] overflow-y-auto">
-
-        <h2 className="text-lg font-semibold mb-2">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="sm"
+      className="app-dialog"
+      aria-labelledby="task-dialog-title"
+    >
+      <form onSubmit={handleSubmit(submitForm)} noValidate>
+        <DialogTitle id="task-dialog-title">
           {task ? "Edit Task" : "Create Task"}
-        </h2>
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-
-          <div>
+          <p className="app-dialog__subtitle">
+            {task
+              ? "Update task details, ownership, or status."
+              : "Describe the work and assign it to a teammate."}
+          </p>
+        </DialogTitle>
+        <DialogContent>
+          <div className="app-dialog__form">
             <TextField
               label="Title"
-              name="title"
-              value={values.title}
-              onChange={handleChange}
-              onBlur={handleBlur}
               fullWidth
-              size="small"
+              className="app-dialog__field"
               placeholder="What needs to be done?"
-              disabled={isLoading || isSubmitting}
-              error={!!(touched.title && errors.title)}
+              disabled={submitting}
+              error={!!errors.title}
+              helperText={errors.title?.message}
+              {...register("title")}
             />
-            {touched.title && errors.title && (
-              <FormHelperText error>{errors.title}</FormHelperText>
-            )}
-          </div>
 
-          <div>
             <TextField
               label="Description"
-              name="description"
-              value={values.description}
-              onChange={handleChange}
-              onBlur={handleBlur}
               fullWidth
-              size="small"
+              className="app-dialog__field"
               placeholder="Add more details..."
               multiline
               rows={4}
-              disabled={isLoading || isSubmitting}
-              error={!!(touched.description && errors.description)}
+              disabled={submitting}
+              error={!!errors.description}
+              helperText={errors.description?.message}
+              {...register("description")}
             />
-            {touched.description && errors.description && (
-              <FormHelperText error>{errors.description}</FormHelperText>
-            )}
+
+            <Controller
+              name="assignedTo"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  select
+                  label="Assign To"
+                  fullWidth
+                  className="app-dialog__field"
+                  disabled={submitting}
+                  {...field}
+                >
+                  <MenuItem value="">Select Assignee</MenuItem>
+                  {users?.map((user) => (
+                    <MenuItem key={user.id} value={user.id}>
+                      {user.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              )}
+            />
+
+            <Controller
+              name="status"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  select
+                  label="Status"
+                  fullWidth
+                  className="app-dialog__field"
+                  disabled={submitting}
+                  {...field}
+                >
+                  <MenuItem value="TODO">To Do</MenuItem>
+                  <MenuItem value="IN_PROGRESS">In Progress</MenuItem>
+                  <MenuItem value="COMPLETED">Completed</MenuItem>
+                </TextField>
+              )}
+            />
+
+            <TextField
+              label="Due Date"
+              type="date"
+              fullWidth
+              className="app-dialog__field"
+              disabled={submitting}
+              InputLabelProps={{ shrink: true }}
+              error={!!errors.dueDate}
+              helperText={errors.dueDate?.message}
+              {...register("dueDate")}
+            />
           </div>
-
-          <TextField
-            select
-            label="Assign To"
-            name="assignedTo"
-            value={values.assignedTo}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            fullWidth
-            size="small"
-            disabled={isLoading || isSubmitting}
-          >
-            <MenuItem value="">Select Assignee</MenuItem>
-            {users?.map((user) => (
-              <MenuItem key={user.id} value={user.id}>
-                {user.name}
-              </MenuItem>
-            ))}
-          </TextField>
-
-          <TextField
-            select
-            label="Status"
-            name="status"
-            value={values.status}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            fullWidth
-            size="small"
-            disabled={isLoading || isSubmitting}
-          >
-            <MenuItem value="TODO">To Do</MenuItem>
-            <MenuItem value="IN_PROGRESS">In Progress</MenuItem>
-            <MenuItem value="COMPLETED">Completed</MenuItem>
-          </TextField>
-
-          <TextField
-            label="Due Date"
-            name="dueDate"
-            type="date"
-            value={values.dueDate}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            fullWidth
-            size="small"
-            disabled={isLoading || isSubmitting}
-            InputLabelProps={{
-              shrink: true,
-            }}
-          />
-
-          <div className="flex justify-end gap-3 mt-2">
-            <Button 
-              variant="outlined" 
-              onClick={onClose}
-              disabled={isLoading || isSubmitting}
+        </DialogContent>
+        <DialogActions className="app-dialog__actions">
+          {task && onDelete && (
+            <Button
+              className="app-button-danger"
+              onClick={() => {
+                if (confirm("Are you sure you want to delete this task?")) {
+                  onDelete(task.id);
+                  onClose();
+                }
+              }}
+              disabled={submitting}
             >
-              Cancel
+              Delete
             </Button>
+          )}
+          {task && onDelete && <span className="app-dialog__footer-spacer" />}
+          <Button
+            variant="outlined"
+            className="app-button-secondary"
+            onClick={onClose}
+            disabled={submitting}
+          >
+            Cancel
+          </Button>
 
-            {task && onDelete && (
-              <Button 
-                variant="outlined" 
-                color="error"
-                onClick={() => {
-                  if (confirm("Are you sure you want to delete this task?")) {
-                    onDelete(task.id)
-                    onClose()
-                  }
-                }}
-                disabled={isLoading || isSubmitting}
-              >
-                Delete
-              </Button>
-            )}
-
-            <Button 
-              variant="contained" 
-              type="submit"
-              disabled={isLoading || isSubmitting}
-              startIcon={(isLoading || isSubmitting) && <CircularProgress size={20} />}
-            >
-              {isLoading || isSubmitting ? "Saving..." : task ? "Update Task" : "Create Task"}
-            </Button>
-          </div>
-
-        </form>
-
-      </Box>
-    </Modal>
-  )
+          <Button
+            variant="contained"
+            className="app-button-primary"
+            type="submit"
+            disabled={submitting}
+            startIcon={submitting && <CircularProgress size={20} />}
+          >
+            {submitting ? "Saving..." : task ? "Update Task" : "Create Task"}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  );
 }

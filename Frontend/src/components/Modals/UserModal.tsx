@@ -1,133 +1,156 @@
-import { Modal, Box, TextField, Button, MenuItem, FormHelperText } from "@mui/material"
-import { useEffect } from "react"
-import { useFormValidation, userFormValidator } from "../../hook/use-form-validation"
-import type { User } from "../../types/user"
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  MenuItem,
+  TextField,
+} from "@mui/material";
+import { useEffect } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { userFormSchema, type UserFormValues } from "../../schemas/user.schema";
+import type { User } from "../../types/user";
+
+export type UserFormData = UserFormValues;
 
 type Props = {
-  open: boolean
-  onClose: () => void
-  onSubmit: (data: User) => void
-  user?: User | null
-}
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (data: UserFormData) => void;
+  user?: User | null;
+};
+
+const emptyValues: UserFormValues = {
+  name: "",
+  email: "",
+  role: "USER",
+  password: "",
+};
 
 export default function UserModal({ open, onClose, onSubmit, user }: Props) {
-
-  const { values, errors, touched, isSubmitting, handleChange, handleBlur, handleSubmit, setValues } = useFormValidation({
-    initialValues: {
-      name: "",
-      email: "",
-      role: "USER",
-      password: "",
-    },
-    validate: userFormValidator,
-    onSubmit: (data) => {
-      onSubmit(data as User)
-      onClose()
-    },
-  })
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<UserFormValues>({
+    resolver: zodResolver(userFormSchema),
+    defaultValues: emptyValues,
+  });
 
   useEffect(() => {
-    if (user) {
-      setValues({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        password: "",
-      })
-    } else {
-      setValues({
-        name: "",
-        email: "",
-        role: "USER",
-        password: "",
-      })
-    }
-  }, [user, setValues])
+    if (!open) return;
+
+    reset(
+      user
+        ? {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            password: "",
+          }
+        : emptyValues,
+    );
+  }, [open, reset, user]);
+
+  const submitForm = (values: UserFormValues) => {
+    onSubmit(values);
+    onClose();
+  };
 
   return (
-    <Modal open={open} onClose={onClose}>
-      <Box className="absolute top-1/2 left-1/2 w-[400px] -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl p-6 shadow-lg">
-
-        <h2 className="text-lg font-semibold mb-4">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="sm"
+      className="app-dialog app-dialog--compact"
+      aria-labelledby="user-dialog-title"
+    >
+      <form onSubmit={handleSubmit(submitForm)} noValidate>
+        <DialogTitle id="user-dialog-title">
           {user ? "Edit User" : "Create User"}
-        </h2>
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-
-          <div>
+          <p className="app-dialog__subtitle">
+            {user
+              ? "Update account details and access role."
+              : "Add a user and set their access role."}
+          </p>
+        </DialogTitle>
+        <DialogContent>
+          <div className="app-dialog__form">
             <TextField
               label="Name"
-              name="name"
-              value={values.name}
-              onChange={handleChange}
-              onBlur={handleBlur}
               fullWidth
-              error={!!(touched.name && errors.name)}
+              className="app-dialog__field"
+              error={!!errors.name}
+              helperText={errors.name?.message}
+              {...register("name")}
             />
-            {touched.name && errors.name && (
-              <FormHelperText error>{errors.name}</FormHelperText>
-            )}
-          </div>
 
-          <div>
             <TextField
               label="Email"
-              name="email"
               type="email"
-              value={values.email}
-              onChange={handleChange}
-              onBlur={handleBlur}
               fullWidth
-              error={!!(touched.email && errors.email)}
+              className="app-dialog__field"
+              error={!!errors.email}
+              helperText={errors.email?.message}
+              {...register("email")}
             />
-            {touched.email && errors.email && (
-              <FormHelperText error>{errors.email}</FormHelperText>
-            )}
-          </div>
 
-          <div>
-            <TextField
-              select
-              label="Role"
+            <Controller
               name="role"
-              value={values.role}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              fullWidth
-            >
-              <MenuItem value="USER">USER</MenuItem>
-              <MenuItem value="ADMIN">ADMIN</MenuItem>
-            </TextField>
-          </div>
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  select
+                  label="Role"
+                  fullWidth
+                  className="app-dialog__field"
+                  {...field}
+                >
+                  <MenuItem value="USER">USER</MenuItem>
+                  <MenuItem value="ADMIN">ADMIN</MenuItem>
+                </TextField>
+              )}
+            />
 
-          <div>
             <TextField
               label="Password"
-              name="password"
               type="password"
-              value={values.password}
-              onChange={handleChange}
-              onBlur={handleBlur}
               fullWidth
-              error={!!(touched.password && errors.password)}
-              helperText={touched.password && errors.password ? errors.password : "Leave empty to keep current password"}
+              className="app-dialog__field"
+              error={!!errors.password}
+              helperText={
+                errors.password?.message ??
+                "Leave empty to keep the current password when editing"
+              }
+              {...register("password")}
             />
           </div>
-
-          <div className="flex justify-end gap-3 mt-2">
-            <Button variant="outlined" onClick={onClose} disabled={isSubmitting}>
-              Cancel
-            </Button>
-
-            <Button variant="contained" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : user ? "Update" : "Create"}
-            </Button>
-          </div>
-
-        </form>
-
-      </Box>
-    </Modal>
-  )
+        </DialogContent>
+        <DialogActions className="app-dialog__actions">
+          <Button
+            variant="outlined"
+            className="app-button-secondary"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            className="app-button-primary"
+            type="submit"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Saving..." : user ? "Update user" : "Create user"}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  );
 }

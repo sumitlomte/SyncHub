@@ -1,162 +1,262 @@
-import { FaFolder, FaTasks, FaUsers, FaSignOutAlt, FaSync } from "react-icons/fa";
-import { TbLayoutDashboard } from "react-icons/tb";
-import { Link, useLocation } from '@tanstack/react-router'
-import { router } from "./../router"
-import useUsers from "../hook/use-user";
-import { GoSidebarCollapse, GoSidebarExpand } from "react-icons/go";
 import { useState } from "react";
+import { Link, useLocation } from "@tanstack/react-router";
+import { useStore } from "@tanstack/react-store";
+import {
+  BriefcaseBusiness,
+  CheckSquare,
+  LogOut,
+  Moon,
+  Sun,
+  UserRound,
+  UsersRound,
+  Workflow,
+} from "lucide-react";
+import { userStore } from "../store/Auth-store";
+import { useTheme } from "../hooks/useTheme";
+import useUsers from "../hook/use-user";
+import { router } from "../router";
 
-interface NavButtonProps {
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-  isActive: boolean;
-  isExpanded: boolean;
-}
+const navItems = [
+  { to: "/projects", label: "Projects", icon: BriefcaseBusiness },
+  { to: "/tasks", label: "Tasks", icon: CheckSquare },
+  { to: "/users", label: "Users", icon: UsersRound },
+] as const;
 
-interface NavItem {
-  to: string;
-  icon: React.ReactNode;
-  label: string;
-  key: "dashboard" | "projects" | "tasks" | "users";
-}
+function ThemeButton({ expanded = false }: { expanded?: boolean }) {
+  const { mode, toggleMode } = useTheme();
+  const Icon = mode === "dark" ? Sun : Moon;
+  const label =
+    mode === "dark" ? "Switch to light mode" : "Switch to dark mode";
 
-const NavButton = ({ to, icon, label, isActive, isExpanded }: NavButtonProps) => (
-  <Link to={to}>
+  return (
     <button
-      className={`flex items-center w-full px-2 py-2 text-left transition-colors duration-200 
-        ${isActive ? "bg-gray-700" : "hover:bg-gray-800"} ${!isExpanded ? "justify-center" : ""}`}
-      title={isExpanded ? "" : label}
+      type="button"
+      onClick={toggleMode}
+      aria-label={label}
+      title={label}
+      className={`app-nav-control inline-flex min-h-11 items-center justify-center gap-3 rounded-xl text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 ${
+        expanded ? "w-full px-3" : "w-11"
+      }`}
     >
-      <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
-        {icon}
-      </div>
-      {isExpanded && <span className="font-medium ml-3 whitespace-nowrap">{label}</span>}
+      <Icon size={19} aria-hidden="true" />
+      {expanded && (
+        <span>{mode === "dark" ? "Light theme" : "Dark theme"}</span>
+      )}
     </button>
-  </Link>
-);
+  );
+}
 
 export default function SideNav() {
   const { LogoutUser } = useUsers();
   const location = useLocation();
+  const user = useStore(userStore, (state) => state.user);
   const [isExpanded, setIsExpanded] = useState(false);
-  
-  // Update active item based on current location
-  const isUsersActive = location.pathname.includes("/users");
-  const isTasksActive = location.pathname.includes("/tasks");
-  const isProjectsActive = location.pathname.includes("/projects");
-  const isDashboardActive = location.pathname === "/dashboard";
-
-  const activeStates = {
-    dashboard: isDashboardActive,
-    projects: isProjectsActive,
-    tasks: isTasksActive,
-    users: isUsersActive,
-  };
-
-  const navItems: NavItem[] = [
-    {
-      key: "dashboard",
-      to: "/dashboard",
-      icon: <TbLayoutDashboard className="w-5 h-5" />,
-      label: "Dashboard",
-    },
-    {
-      key: "projects",
-      to: "/projects",
-      icon: <FaFolder className="w-4 h-4" />,
-      label: "Projects",
-    },
-    {
-      key: "tasks",
-      to: "/tasks",
-      icon: <FaTasks className="w-4 h-4" />,
-      label: "Tasks",
-    },
-    {
-      key: "users",
-      to: "/users",
-      icon: <FaUsers className="w-4 h-4" />,
-      label: "Users",
-    },
-  ];
 
   const handleLogout = async () => {
     try {
-      // Call the mutation - it will handle cache clearing in onSuccess
-      
-      
       await LogoutUser.mutateAsync();
-      
-      // Navigate to login after mutation completes
-      router.navigate({ to: "/login" });
     } catch {
-      // Mutation error handler already displays toast
-      // Still navigate to login on error
-      router.navigate({ to: "/login" });
+      // The mutation reports logout failures; continue to the login screen.
+    } finally {
+      await router.navigate({ to: "/login" });
     }
   };
 
-  return (
-    <div className={`${isExpanded ? "w-38" : "w-15"} h-screen bg-gray-900 text-white flex flex-col transition-all duration-300 ease-in-out`}>
-      {/* Logo / App Name */}
-      <div className="p-3 border-b border-gray-700 flex items-center justify-between gap-2 group">
-        {isExpanded && (
-          <div className="flex items-center gap-2">
-            <FaSync className="w-5 h-5 text-blue-400" />
-            <h2 className="text-lg font-semibold">SyncHub</h2>
-          </div>
-        )}
-        {!isExpanded && (
-          <div className="w-6 h-6 mx-auto flex items-center justify-center">
-            <FaSync className="w-6 h-6 text-blue-400 group-hover:hidden" />
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="hidden group-hover:block p-1 hover:bg-gray-700 rounded transition-colors"
-              title="Expand sidebar"
-            >
-              <GoSidebarExpand className="w-5 h-5" />
-            </button>
-          </div>
-        )}
-        {isExpanded && (
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1 hover:bg-gray-700 rounded transition-colors flex-shrink-0"
-            title="Collapse sidebar"
-          >
-            <GoSidebarCollapse className="w-5 h-5" />
-          </button>
-        )}
-      </div>
+  const userName = user?.name || "Account";
+  const role = user?.role || "USER";
+  const initials = userName
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
-      {/* Navigation */}
-      <nav className="flex flex-col justify-between mt-4 h-full">
-        <div className="flex flex-col space-y-2">
-          {navItems.map((item) => (
-            <NavButton
-              key={item.key}
-              to={item.to}
-              icon={item.icon}
-              label={item.label}
-              isActive={activeStates[item.key]}
-              isExpanded={isExpanded}
-            />
-          ))}
-        </div>
-        <div>
-          <button
-            className={`flex items-center w-full px-2 py-2 text-left transition-colors duration-200 bg-gray-700 hover:bg-gray-600 ${!isExpanded ? "justify-center" : ""}`}
-            onClick={handleLogout}
-            title={isExpanded ? "" : "Logout"}
+  return (
+    <>
+      <header className="mobile-app-bar fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b px-3 shadow-sm backdrop-blur md:hidden">
+        <Link
+          to="/projects"
+          className="app-brand-link flex min-w-0 items-center gap-2 font-semibold"
+          aria-label="SyncHub home"
+        >
+          <span className="app-brand-mark flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+            <Workflow size={19} strokeWidth={2.25} aria-hidden="true" />
+          </span>
+          <span className="app-brand-name tracking-tight">SyncHub</span>
+        </Link>
+
+        <div className="flex items-center gap-1">
+          <div
+            className="app-mobile-account flex max-w-[42vw] items-center gap-2 rounded-full py-1 pl-1 pr-2"
+            title={`${userName} — ${role}`}
           >
-            <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
-              <FaSignOutAlt className="w-5 h-5" />
-            </div>
-            {isExpanded && <span className="font-medium ml-3 whitespace-nowrap">LOGOUT</span>}
+            <span className="app-account-avatar flex h-7 w-7 shrink-0 items-center justify-center rounded-full">
+              {initials || <UserRound size={15} />}
+            </span>
+            <span className="truncate text-xs font-semibold">{role}</span>
+          </div>
+          <ThemeButton />
+          <button
+            type="button"
+            onClick={handleLogout}
+            aria-label="Log out"
+            className="app-nav-control inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-600 focus-visible:outline-2 focus-visible:outline-blue-500"
+          >
+            <LogOut size={18} />
           </button>
         </div>
+      </header>
+
+      <nav
+        aria-label="Main navigation"
+        className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t px-2 pt-1 backdrop-blur pb-[env(safe-area-inset-bottom)] md:hidden"
+      >
+        {navItems.map(({ to, label, icon: Icon }) => {
+          const active = location.pathname.startsWith(to);
+          return (
+            <Link
+              key={to}
+              to={to}
+              aria-current={active ? "page" : undefined}
+              className={`app-mobile-nav-link flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium ${
+                active ? "is-active" : ""
+              }`}
+            >
+              <Icon size={20} aria-hidden="true" />
+              <span>{label}</span>
+            </Link>
+          );
+        })}
       </nav>
-    </div>
+
+      <aside
+        className={`app-sidebar sticky top-0 hidden h-dvh shrink-0 flex-col border-r transition-[width] duration-200 md:flex ${
+          isExpanded ? "w-52" : "w-16"
+        }`}
+      >
+        <div className="app-sidebar__top flex h-16 items-center justify-between border-b px-2">
+          {isExpanded ? (
+            <Link
+              to="/projects"
+              className="app-brand-link flex min-w-0 items-center gap-3 font-semibold"
+            >
+              <span className="app-brand-mark flex h-10 w-10 shrink-0 items-center justify-center rounded-xl">
+                <Workflow size={22} strokeWidth={2.25} aria-hidden="true" />
+              </span>
+              <span className="min-w-0">
+                <span className="app-brand-name block truncate text-sm tracking-tight">
+                  SyncHub
+                </span>
+                <span className="app-brand-caption block text-[11px] font-medium">
+                  Project workspace
+                </span>
+              </span>
+            </Link>
+          ) : (
+            <Link
+              to="/projects"
+              aria-label="SyncHub home"
+              className="app-brand-mark mx-auto flex h-9 w-9 items-center justify-center rounded-xl"
+            >
+              <Workflow size={20} strokeWidth={2.25} aria-hidden="true" />
+            </Link>
+          )}
+          {isExpanded && (
+            <button
+              type="button"
+              onClick={() => setIsExpanded(false)}
+              aria-label="Collapse navigation"
+              aria-expanded={isExpanded}
+              className="app-nav-control rounded-lg p-2"
+            >
+              <span aria-hidden="true">‹</span>
+            </button>
+          )}
+        </div>
+
+        <nav
+          aria-label="Main navigation"
+          className="flex-1 space-y-1.5 p-1.5 pt-4"
+        >
+          {isExpanded && (
+            <p className="app-sidebar__section-label px-3 pb-2">Workspace</p>
+          )}
+          {navItems.map(({ to, label, icon: Icon }) => {
+            const active = location.pathname.startsWith(to);
+            return (
+              <Link
+                key={to}
+                to={to}
+                aria-current={active ? "page" : undefined}
+                title={!isExpanded ? label : undefined}
+                className={`app-sidebar-link flex min-h-10 items-center gap-2.5 rounded-xl px-2.5 text-sm font-medium ${
+                  !isExpanded ? "justify-center px-0" : ""
+                }`}
+              >
+                <Icon size={19} aria-hidden="true" />
+                {isExpanded && <span>{label}</span>}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="app-sidebar__bottom space-y-1.5 border-t p-1.5">
+          {isExpanded ? (
+            <div className="app-account-chip flex items-center gap-3 rounded-xl p-3">
+              <span className="app-account-avatar flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold">
+                {initials || <UserRound size={18} />}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium">
+                  {userName}
+                </span>
+                <span className="app-account-role block text-xs uppercase tracking-wide">
+                  {role}
+                </span>
+              </span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              title={`${userName} — ${role}`}
+              aria-label={`Signed in as ${userName}, ${role}`}
+              aria-expanded={isExpanded}
+              onClick={() => setIsExpanded(true)}
+              className="app-nav-control mx-auto flex flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1"
+            >
+              <span className="app-account-avatar flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold">
+                {initials || <UserRound size={18} />}
+              </span>
+              <span className="app-account-role text-[9px] font-semibold uppercase tracking-wide">
+                {role}
+              </span>
+            </button>
+          )}
+          <ThemeButton expanded={isExpanded} />
+          {!isExpanded && (
+            <button
+              type="button"
+              onClick={() => setIsExpanded(true)}
+              aria-label="Expand navigation"
+              title="Expand navigation"
+              className="app-nav-control flex min-h-10 w-full items-center justify-center rounded-xl text-slate-400"
+            >
+              <span aria-hidden="true">›</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleLogout}
+            title={!isExpanded ? "Log out" : undefined}
+            className={`app-sidebar-logout flex min-h-10 w-full items-center justify-center gap-2.5 rounded-xl text-sm font-medium transition-colors ${
+              isExpanded ? "px-3" : ""
+            }`}
+          >
+            <LogOut size={19} />
+            {isExpanded && <span>Log out</span>}
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }
